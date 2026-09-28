@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/a11y_desc"
+    android:summary="@string/a11y_desc"
+    android:accessibilityEventTypes="typeAnnouncement"
+    android:packageNames="com.pingxingyan.split"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault"
+    android:notificationTimeout="1000"
+    android:canRetrieveWindowContent="false"
+    android:canPerformGestures="true" />
