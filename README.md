@@ -2,6 +2,7 @@
 # 平行眼分屏
 
 Mirrors your phone screen in real time as **two side-by-side copies**, each with a red focus ring below it, for free-view ("parallel eye") viewing — just like a parallel-view stereogram.
+
 把手机当前屏幕实时复制成**左右两份**并排显示，每份下方有一个红色对焦圈，用“平行眼”（free-view，自由立体观看）的方式观看——就像看平行法立体图一样。
 
 - The app underneath (e.g. Douyin/TikTok) **stays in portrait**, while the split view is **drawn in landscape**: hold the phone sideways and you see two upright pictures side by side.
