@@ -121,8 +121,8 @@
 <TextView style="@style/CardTitle" android:text="刷新" />
 <TextView style="@style/Label" android:text="捕获范围" />
 <RadioGroup android:id="@+id/scopeGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/scopeDisplay" style="@style/Seg" android:text="强制整个屏幕" />
-<RadioButton android:id="@+id/scopeApp" style="@style/Seg" android:text="弹窗中选择" />
+<RadioButton android:id="@+id/scopeApp" style="@style/Seg" android:layout_height="52dp" android:maxLines="2" android:textSize="13sp" android:text="每次询问（可选单个应用/整个屏幕）" />
+<RadioButton android:id="@+id/scopeDisplay" style="@style/Seg" android:layout_height="52dp" android:maxLines="2" android:textSize="13sp" android:text="始终整个屏幕" />
 </RadioGroup>
 <TextView android:id="@+id/scopeHint" style="@style/Hint" />
 <Switch android:id="@+id/swSkip" style="@style/PillSwitch" android:text="录屏排除分屏层（实验）" />

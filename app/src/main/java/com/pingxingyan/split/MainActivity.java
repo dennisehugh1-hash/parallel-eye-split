@@ -241,8 +241,8 @@ public class MainActivity extends Activity {
                 "使用说明\n"
                 + "1. 先授予“显示在其他应用上层”（悬浮窗）权限；Android 13 及以上建议允许通知（用于显示“停止”按钮）。\n"
                 + "2. 点“开始”，在系统录屏弹窗中确认。Android 14 及以上每次开始都需要重新确认。\n"
-                + "   · 录屏弹窗选“整个屏幕”（或设置里“捕获范围”选“强制整个屏幕”）：输入法、弹窗都能看到，防套娃生效时可用实时。\n"
-                + "   · 选“单个应用”：可用实时高帧率，但看不到输入法键盘。\n"
+                + "   · 录屏弹窗选“整个屏幕”（或设置里“捕获范围”选“始终整个屏幕”）：输入法、弹窗都能看到，防套娃生效时可用实时。\n"
+                + "   · 选“单个应用”：画面干净，不会套娃，可用实时高帧率。\n"
                 + "3. 点屏幕上的悬浮按钮“分屏”开启；再点“关闭”（或在开启快捷手势时双击分屏画面）关闭。长按悬浮按钮打开本设置页。悬浮按钮可拖动。\n"
                 + "4. 默认“强制横屏”：下面的应用（如抖音）保持竖屏不变，分屏画面横着显示——把手机横过来拿，就能看到左右两个竖着的画面。"
                 + "横拿方向默认按重力感应自动判断，也可在“横屏方向”里固定为向左或向右。选“跟随系统方向”则分屏画面与系统方向一致。\n"
@@ -311,16 +311,16 @@ public class MainActivity extends Activity {
         swSkip.setChecked(skOn);
         swSkip.setEnabled(disp && SkipCapture.supported());
         skipHint.setText(!SkipCapture.supported() ? "需要 Android 12 及以上。"
-                : !disp ? "仅在“强制整个屏幕”时可用。"
+                : !disp ? "仅在“始终整个屏幕”时可用。"
                 : "试图让分屏层不被录进去，从而“整个屏幕 + 实时”也不套娃。实验功能：部分机型开启后输入法会从分屏画面中消失，遇到请关闭。");
         int sk = skOn ? ProjectionService.skipStatus : -1;
         boolean bad = disp && Prefs.mode(prefs) == Prefs.MODE_LIVE && (!skOn || sk == SkipCapture.R_FAIL);
-        scopeHint.setText((disp ? "录制整个屏幕：输入法（键盘）、通知、弹窗都会显示在分屏里。"
+        scopeHint.setText((disp ? "录屏弹窗不再提供“单个应用”选项，始终录整个屏幕（Android 14+；更早的系统本来就只能录整个屏幕）。分屏层自己也会被录进去，可能出现套娃，除非“录屏排除分屏层”生效或使用“间歇刷新”。"
                 + (!SkipCapture.supported() ? "本机系统低于 Android 12，无法把分屏层排除出录屏，只能用“间歇刷新”。"
                 : sk == SkipCapture.R_LOCAL || sk == SkipCapture.R_SHIZUKU ? "已尝试把分屏层排除出录屏（防套娃" + (sk == SkipCapture.R_SHIZUKU ? "，经 Shizuku" : "") + "），可用实时。若仍套娃请改用间歇刷新。"
                 : sk == SkipCapture.R_FAIL ? "分屏层排除失败，自动改用间歇刷新。可开启 Shizuku 后重新开始再试。"
                 : skOn ? "开启分屏时会尝试把分屏层排除出录屏。" : "分屏层会被录进去：请用“间歇刷新”，否则会套娃（或试用下面的实验开关）。")
-                : "由系统录屏弹窗决定（默认，与 v1.5 相同）：选“单个应用”可稳定实时，但 Android 14+ 上输入法键盘和系统弹窗不属于该应用，可能不出现在分屏里；选“整个屏幕”则同下方说明。")
+                : "每次开始时由系统录屏弹窗询问（默认，与 v1.5 相同）：可选“单个应用”（画面干净，不会套娃，可用实时）或“整个屏幕”。")
                 + (Build.VERSION.SDK_INT < 34 ? "（本机 Android 版本的录屏弹窗总是录整个屏幕）" : "")
                 + (bad ? (skOn ? "\n⚠ 排除失败：已自动使用间歇刷新。" : "\n⚠ 整个屏幕 + 实时会套娃，请改为间歇刷新。") : ""));
         scopeHint.setTextColor(getColor(bad ? R.color.bad : R.color.text2));
