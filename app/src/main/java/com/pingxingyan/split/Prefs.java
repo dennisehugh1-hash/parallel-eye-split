@@ -21,6 +21,9 @@ public final class Prefs {
     public static final String K_GESTURES = "gestures";        // 快捷手势开关
     public static final String K_CONTROL_SIDE = "control_side"; // 可操控半屏关闭时记住的一侧 1左 2右
     public static final String K_REALTIME = "realtime";        // 实时操控（Shizuku）
+    public static final String K_QUALITY = "quality";          // 画质 0高 1标准 2省电
+    public static final String K_SHOW_FPS = "show_fps";
+    public static final int Q_HIGH = 0, Q_STD = 1, Q_SAVER = 2;
     public static final String K_BUBBLE_X = "bubble_x";
     public static final String K_BUBBLE_Y = "bubble_y";
 
@@ -65,6 +68,8 @@ public final class Prefs {
     public static int mode(SharedPreferences p) { return p.getInt(K_MODE, defaultMode()); }
     public static int controlPane(SharedPreferences p) { return p.getInt(K_CONTROL_PANE, CONTROL_OFF); }
     public static boolean gestures(SharedPreferences p) { return p.getBoolean(K_GESTURES, true); }
+    public static int quality(SharedPreferences p) { return p.getInt(K_QUALITY, Q_HIGH); }
+    public static boolean showFps(SharedPreferences p) { return p.getBoolean(K_SHOW_FPS, false); }
     public static boolean realtime(SharedPreferences p) { return p.getBoolean(K_REALTIME, false); }
     public static int controlSide(SharedPreferences p) {
         int c = controlPane(p);

@@ -60,10 +60,57 @@
         <item name="android:minWidth">88dp</item>
         <item name="android:textSize">13sp</item>
     </style>
-    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.Light.DarkActionBar">
+    <style name="PillSwitch">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:track">@drawable/switch_track</item>
+        <item name="android:thumb">@drawable/switch_thumb</item>
+        <item name="android:thumbTint">#FFFFFFFF</item>
+        <item name="android:trackTint">@null</item>
+        <item name="android:switchMinWidth">52dp</item>
+        <item name="android:showText">false</item>
+        <item name="android:background">@null</item>
+    </style>
+    <style name="SegGroup">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:background">@drawable/seg_group_bg</item>
+        <item name="android:padding">3dp</item>
+        <item name="android:layout_marginTop">6dp</item>
+    </style>
+    <style name="Seg">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_height">38dp</item>
+        <item name="android:button">@null</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/seg_text</item>
+        <item name="android:background">@drawable/seg_item_bg</item>
+        <item name="android:maxLines">1</item>
+    </style>
+    <style name="TonalBtn">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:minWidth">72dp</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/accent</item>
+        <item name="android:background">@drawable/btn_tonal</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:layout_marginLeft">8dp</item>
+    </style>
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:colorAccent">@color/accent</item>
         <item name="android:colorPrimary">@color/accent</item>
-        <item name="android:colorPrimaryDark">@color/accentDark</item>
+        <item name="android:colorPrimaryDark">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

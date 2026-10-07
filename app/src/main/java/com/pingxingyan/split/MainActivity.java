@@ -24,11 +24,12 @@ public class MainActivity extends Activity {
     private static final int REQ_NOTIF = 101;
 
     private SharedPreferences prefs;
-    private TextView status, stCapture, stOverlay, stNotif, stShizuku, comboHint, realtimeHelp, lblSep, lblSize, lblOffset, lblInterval;
+    private TextView status, stCapture, stOverlay, stNotif, stShizuku, comboHint, methodHelp, methodStatus, statusDetail, qualityHint, fitHint, orientHint, modeHint, lblSep, lblSize, lblOffset, lblInterval;
     private SeekBar seekSep, seekSize, seekOffset, seekInterval;
     private RadioGroup modeGroup, controlGroup, fitGroup, orientGroup, dirGroup;
-    private android.widget.CheckBox chkDots;
-    private android.widget.Switch swGestures, swControl, swRealtime;
+    private android.widget.CompoundButton chkDots, swFps;
+    private android.widget.Switch swGestures;
+    private RadioGroup methodGroup, qualityGroup;
     private Button btnShizuku, btnA11yBtn, btnOverlay, btnStart2;
     private final Runnable shizukuListener = this::refreshStatus;
     private TextView a11yStatus;
@@ -50,36 +51,49 @@ public class MainActivity extends Activity {
         stNotif = findViewById(R.id.stNotif);
         stShizuku = findViewById(R.id.stShizuku);
         comboHint = findViewById(R.id.comboHint);
-        realtimeHelp = findViewById(R.id.realtimeHelp);
+        methodHelp = findViewById(R.id.methodHelp);
+        methodStatus = findViewById(R.id.methodStatus);
+        statusDetail = findViewById(R.id.statusDetail);
+        qualityHint = findViewById(R.id.qualityHint);
+        fitHint = findViewById(R.id.fitHint);
+        orientHint = findViewById(R.id.orientHint);
+        modeHint = findViewById(R.id.modeHint);
+        methodGroup = findViewById(R.id.methodGroup);
+        qualityGroup = findViewById(R.id.qualityGroup);
+        swFps = findViewById(R.id.swFps);
         swGestures = findViewById(R.id.swGestures);
-        swControl = findViewById(R.id.swControl);
-        swRealtime = findViewById(R.id.swRealtime);
         btnShizuku = findViewById(R.id.btnShizuku);
         btnA11yBtn = findViewById(R.id.btnA11y);
         btnOverlay = findViewById(R.id.btnOverlayPerm);
         btnStart2 = findViewById(R.id.btnStart2);
-        ((TextView) findViewById(R.id.version)).setText("平行眼分屏 v" + BuildConfig.VERSION_NAME + "（" + BuildConfig.VERSION_CODE + "）");
+        ((TextView) findViewById(R.id.version)).setText("v" + BuildConfig.VERSION_NAME + " · 平行眼（裸眼 3D）观看工具");
         swGestures.setOnCheckedChangeListener((b, c) -> {
             if (updatingUi) return;
             prefs.edit().putBoolean(Prefs.K_GESTURES, c).apply();
         });
-        swControl.setOnCheckedChangeListener((b, c) -> {
+        swFps.setOnCheckedChangeListener((b, c) -> {
             if (updatingUi) return;
-            prefs.edit().putInt(Prefs.K_CONTROL_PANE, c ? Prefs.controlSide(prefs) : Prefs.CONTROL_OFF).apply();
-            if (c && !GestureService.isRunning() && !ShizukuHelper.get(this).isReady()) {
-                Toast.makeText(this, "还需开启无障碍服务“平行眼分屏·可操控半屏”（或使用 Shizuku 实时操控）才能生效", Toast.LENGTH_LONG).show();
-            }
+            prefs.edit().putBoolean(Prefs.K_SHOW_FPS, c).apply();
         });
-        swRealtime.setOnCheckedChangeListener((b, c) -> {
+        qualityGroup.setOnCheckedChangeListener((g, id) -> {
             if (updatingUi) return;
-            prefs.edit().putBoolean(Prefs.K_REALTIME, c).apply();
+            prefs.edit().putInt(Prefs.K_QUALITY, id == R.id.qSaver ? Prefs.Q_SAVER : id == R.id.qStd ? Prefs.Q_STD : Prefs.Q_HIGH).apply();
+        });
+        methodGroup.setOnCheckedChangeListener((g, id) -> {
+            if (updatingUi) return;
             ShizukuHelper h = ShizukuHelper.get(this);
-            if (c) {
-                if (!h.granted()) {
-                    if (!h.requestPermission()) Toast.makeText(this, "Shizuku 未运行：请先安装并启动 Shizuku，未就绪时将使用无障碍回放", Toast.LENGTH_LONG).show();
-                } else h.ensureBound();
-            } else {
+            if (id == R.id.methodOff) {
+                prefs.edit().putInt(Prefs.K_CONTROL_PANE, Prefs.CONTROL_OFF).putBoolean(Prefs.K_REALTIME, false).apply();
                 h.unbind();
+            } else if (id == R.id.methodA11y) {
+                prefs.edit().putInt(Prefs.K_CONTROL_PANE, Prefs.controlSide(prefs)).putBoolean(Prefs.K_REALTIME, false).apply();
+                h.unbind();
+                if (!GestureService.isRunning()) Toast.makeText(this, "还需开启无障碍服务“平行眼分屏·可操控半屏”", Toast.LENGTH_LONG).show();
+            } else {
+                prefs.edit().putInt(Prefs.K_CONTROL_PANE, Prefs.controlSide(prefs)).putBoolean(Prefs.K_REALTIME, true).apply();
+                if (!h.granted()) {
+                    if (!h.requestPermission()) Toast.makeText(this, "Shizuku 未运行：请先安装并启动 Shizuku。未就绪期间会临时改用无障碍回放", Toast.LENGTH_LONG).show();
+                } else h.ensureBound();
             }
             refreshStatus();
         });
@@ -247,8 +261,17 @@ public class MainActivity extends Activity {
         int cp = Prefs.controlPane(prefs);
         boolean gOn = Prefs.gestures(prefs), cOn = cp != Prefs.CONTROL_OFF;
         swGestures.setChecked(gOn);
-        swControl.setChecked(cOn);
-        swRealtime.setChecked(Prefs.realtime(prefs));
+        boolean rtOn = Prefs.realtime(prefs);
+        methodGroup.check(!cOn ? R.id.methodOff : rtOn ? R.id.methodShizuku : R.id.methodA11y);
+        int q = Prefs.quality(prefs);
+        qualityGroup.check(q == Prefs.Q_SAVER ? R.id.qSaver : q == Prefs.Q_STD ? R.id.qStd : R.id.qHigh);
+        qualityHint.setText(q == Prefs.Q_HIGH ? "原生分辨率，帧率跟随屏幕刷新率（60/90/120Hz），GPU 直接绘制。最清晰，耗电较多。"
+                : q == Prefs.Q_STD ? "75% 分辨率，最高约 60 帧。画质与耗电平衡。"
+                : "50% 分辨率，最高约 30 帧（与 v1.4 及以前相同）。最省电。");
+        swFps.setChecked(Prefs.showFps(prefs));
+        fitHint.setText(Prefs.fitMode(prefs) == Prefs.FIT_CONTAIN ? "等比完整显示，可能留黑边。" : "裁切边缘，铺满半屏。");
+        orientHint.setText(Prefs.splitOrient(prefs) == Prefs.ORIENT_FOLLOW ? "分屏画面与系统方向一致。" : "应用保持竖屏，分屏画面横着显示，横拿手机观看。");
+        modeHint.setText(Prefs.mode(prefs) == Prefs.MODE_LIVE ? "持续刷新，需在录屏弹窗中选择“单个应用”。" : "整个屏幕也可用，每次刷新会轻微闪烁。");
         controlGroup.check(Prefs.controlSide(prefs) == Prefs.CONTROL_LEFT ? R.id.controlLeft : R.id.controlRight);
         for (int i = 0; i < controlGroup.getChildCount(); i++) controlGroup.getChildAt(i).setEnabled(cOn);
         String side = Prefs.controlSide(prefs) == Prefs.CONTROL_LEFT ? "左" : "右";
@@ -270,9 +293,10 @@ public class MainActivity extends Activity {
         boolean overlay = Settings.canDrawOverlays(this);
         boolean notif = Build.VERSION.SDK_INT < 33
                 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
-        status.setText(ProjectionService.running
-                ? (ProjectionService.splitOnPublic ? "状态：运行中，分屏已开启" : "状态：运行中（点悬浮按钮开启分屏）")
-                : "状态：未运行");
+        status.setText(ProjectionService.running ? (ProjectionService.splitOnPublic ? "● 分屏中" : "● 运行中") : "○ 未运行");
+        statusDetail.setText(!overlay ? "请先在下方授予悬浮窗权限，然后点“开始”。"
+                : ProjectionService.running ? (ProjectionService.splitOnPublic ? "分屏已开启。点悬浮按钮或“开 / 关分屏”关闭。" : "正在录屏。点屏幕上的悬浮按钮“分屏”开启平行眼画面。")
+                : "点“开始”并在系统弹窗中允许录屏。");
         setSt(stCapture, ProjectionService.running ? 2 : 1, ProjectionService.running ? "录屏：已授权（运行中）" : "录屏：每次点“开始”时确认");
         btnStart2.setVisibility(ProjectionService.running ? View.GONE : View.VISIBLE);
         setSt(stOverlay, overlay ? 2 : 0, overlay ? "悬浮窗：已授予" : "悬浮窗：未授予（必需）");
@@ -295,15 +319,27 @@ public class MainActivity extends Activity {
         btnShizuku.setText(ss == ShizukuHelper.ST_NOT_RUNNING || ss == ShizukuHelper.ST_OLD ? "打开" : "授权");
         btnShizuku.setVisibility(ss == ShizukuHelper.ST_READY || ss == ShizukuHelper.ST_BINDING ? View.GONE : View.VISIBLE);
         if (rt && ss == ShizukuHelper.ST_BINDING) sh.ensureBound();
-        realtimeHelp.setText(rt
-                ? (ss == ShizukuHelper.ST_READY ? "实时操控已生效：手指在可操控半屏上移动时，下面的应用同步响应。"
-                    : "Shizuku 未就绪，暂时使用无障碍回放（松手约 0.3 秒后执行）。")
-                : "关闭时使用无障碍回放（松手后执行，有延迟）。开启后通过 Shizuku 实时注入触摸，手指移动即时生效。");
         boolean a11yOn = GestureService.isRunning();
         boolean a11ySet = GestureService.isEnabledInSettings(this);
         setSt(a11yStatus, a11yOn ? 2 : a11ySet ? 1 : (Prefs.controlPane(prefs) != Prefs.CONTROL_OFF ? 0 : 1),
                 a11yOn ? "无障碍：已开启" : a11ySet ? "无障碍：已打开但未运行（请关闭后重开）" : "无障碍：未开启（可操控半屏回放需要）");
         btnA11yBtn.setVisibility(a11yOn ? View.GONE : View.VISIBLE);
+        boolean cOn = Prefs.controlPane(prefs) != Prefs.CONTROL_OFF;
+        if (!cOn) {
+            setSt(methodStatus, 1, "可操控半屏已关闭");
+            methodHelp.setText("分屏画面不会把触摸传给下面的应用。");
+        } else if (!rt) {
+            setSt(methodStatus, a11yOn ? 2 : 0, a11yOn ? "无障碍服务已开启，可以使用" : "无障碍服务未开启，暂不可用——点上方“去开启”");
+            methodHelp.setText("在可操控半屏上点按、长按或滑动，松手约 0.3 秒后在真实屏幕上代为执行一遍。有延迟，不支持多指。");
+        } else if (ss == ShizukuHelper.ST_READY) {
+            setSt(methodStatus, 2, "Shizuku 已就绪：实时操控生效中");
+            methodHelp.setText("手指按下即实时传给下面的应用，移动、拖动同步响应。按住期间画面会稍微变淡（系统允许触摸穿透的要求）。不支持多指。");
+        } else {
+            String why = ss == ShizukuHelper.ST_NOT_RUNNING ? "Shizuku 未运行" : ss == ShizukuHelper.ST_NO_PERMISSION ? "Shizuku 未授权"
+                    : ss == ShizukuHelper.ST_OLD ? "Shizuku 版本过旧" : "正在连接 Shizuku";
+            setSt(methodStatus, 0, "⚠ " + why + " → 临时改用无障碍回放" + (a11yOn ? "" : "（无障碍也未开启，当前无法操控）"));
+            methodHelp.setText("Shizuku 就绪后自动切换为实时操控。请打开 Shizuku 启动服务，并在权限栏点“授权”。");
+        }
         btnNotif.setVisibility(Build.VERSION.SDK_INT >= 33 && !notif ? View.VISIBLE : View.GONE);
     }
 

@@ -64,10 +64,14 @@ public class SplitView extends View {
     private final SharedPreferences prefs;
     private final Listener listener;
     private final WindowManager wm;
-    private final Paint bmpPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+    private final Paint bmpPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Rect src = new Rect();
+    private final Paint fpsPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private int newFrames, drawCount;
+    private long fpsT0;
+    private float fpsCap, fpsDraw;
     private final RectF dst = new RectF();
     private final int touchSlop;
 
@@ -163,6 +167,7 @@ public class SplitView extends View {
 
     /** 仅在主线程调用。 */
     public void setFrame(Bitmap bmp, int w, int h) {
+        newFrames++;
         frame = bmp;
         frameW = w;
         frameH = h;
@@ -264,6 +269,25 @@ public class SplitView extends View {
             }
         }
 
+        if (Prefs.showFps(prefs)) {
+            long now = SystemClock.uptimeMillis();
+            drawCount++;
+            if (fpsT0 == 0) fpsT0 = now;
+            if (now - fpsT0 >= 1000) {
+                fpsCap = newFrames * 1000f / (now - fpsT0);
+                fpsDraw = drawCount * 1000f / (now - fpsT0);
+                newFrames = 0; drawCount = 0; fpsT0 = now;
+            }
+            String t = String.format(Locale.ROOT, "画面 %.0f fps · 绘制 %.0f fps · %dx%d%s", fpsCap, fpsDraw, frameW, frameH,
+                    frame != null && frame.getConfig() == Bitmap.Config.HARDWARE ? " · GPU" : " · CPU");
+            fpsPaint.setTextSize(12 * getResources().getDisplayMetrics().scaledDensity);
+            float tw = fpsPaint.measureText(t);
+            fpsPaint.setColor(0x99000000);
+            canvas.drawRect(8, 8, 24 + tw, 16 + fpsPaint.getTextSize() * 1.4f, fpsPaint);
+            fpsPaint.setColor(0xFF7CFC00);
+            canvas.drawText(t, 16, 12 + fpsPaint.getTextSize() * 1.1f, fpsPaint);
+            postInvalidateDelayed(500);
+        }
         if (hint != null && SystemClock.uptimeMillis() < hintUntil) {
             float ty = textPaint.getTextSize() * 2.5f;
             canvas.drawText(hint, g.W / 2f, ty, textPaint);

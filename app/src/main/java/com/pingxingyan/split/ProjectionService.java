@@ -95,6 +95,10 @@ public class ProjectionService extends Service {
     private final SharedPreferences.OnSharedPreferenceChangeListener prefListener = (p, key) -> {
         if (splitView != null) splitView.invalidate();
         if (Prefs.K_MODE.equals(key) || Prefs.K_INTERVAL_MS.equals(key)) restartIntervalCycle();
+        if (Prefs.K_QUALITY.equals(key) && virtualDisplay != null) {
+            Point sz = currentCaptureSource();
+            captureHandler.post(() -> resizeCapture(scaled(sz.x), scaled(sz.y)));
+        }
     };
 
     @Override
@@ -179,11 +183,15 @@ public class ProjectionService extends Service {
             gotContentResize = true;
             contentW = width;
             contentH = height;
-            captureHandler.post(() -> resizeCapture(width / 2, height / 2));
+            captureHandler.post(() -> resizeCapture(scaled(width), scaled(height)));
         }
     };
 
     private volatile int contentW, contentH;
+
+    private Point currentCaptureSource() {
+        return gotContentResize && contentW > 0 ? new Point(contentW, contentH) : realDisplaySize();
+    }
 
     private Point realDisplaySize() { return Prefs.realDisplaySize(this); }
 
@@ -204,7 +212,7 @@ public class ProjectionService extends Service {
         Point old = lastDisplay;
         lastDisplay = sz;
         if (capturingWholeDisplay(old)) {
-            captureHandler.post(() -> resizeCapture(sz.x / 2, sz.y / 2));
+            captureHandler.post(() -> resizeCapture(scaled(sz.x), scaled(sz.y)));
         }
         clampBubble();
     }
@@ -222,8 +230,8 @@ public class ProjectionService extends Service {
         lastDisplay = sz;
         getSystemService(DisplayManager.class).registerDisplayListener(displayListener, main);
         capDpi = getResources().getDisplayMetrics().densityDpi;
-        capW = even(sz.x / 2);
-        capH = even(sz.y / 2);
+        capW = even(scaled(sz.x));
+        capH = even(scaled(sz.y));
         reader = newReader(capW, capH);
         // Android 14 要求：createVirtualDisplay 之前注册回调；每个 MediaProjection 只能创建一次虚拟显示
         projection.registerCallback(projectionCallback, main);
@@ -239,8 +247,32 @@ public class ProjectionService extends Service {
 
     private static int even(int v) { return Math.max(2, v & ~1); }
 
+    /** 按画质设置缩放捕获分辨率：高=原生，标准=0.75，省电=0.5。 */
+    private int scaled(int v) {
+        int q = Prefs.quality(prefs);
+        float f = q == Prefs.Q_HIGH ? 1f : q == Prefs.Q_STD ? 0.75f : 0.5f;
+        return Math.round(v * f);
+    }
+
+    /** 帧间隔下限（毫秒）：高=屏幕刷新率，标准=60fps，省电=30fps。 */
+    private long minFrameMs() {
+        int q = Prefs.quality(prefs);
+        if (q == Prefs.Q_SAVER) return 32;
+        if (q == Prefs.Q_STD) return 15;
+        return 0; // 由虚拟显示按屏幕刷新率产生帧
+    }
+
+    /** Android 10+：GPU 可直接采样的 ImageReader，帧以 HardwareBuffer 零拷贝包装成硬件位图绘制。 */
+    private final boolean hwPath = Build.VERSION.SDK_INT >= 29;
+
     private ImageReader newReader(int w, int h) {
-        ImageReader r = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 3);
+        ImageReader r;
+        if (hwPath) {
+            r = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 4,
+                    android.hardware.HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE);
+        } else {
+            r = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 3);
+        }
         r.setOnImageAvailableListener(this::onImage, captureHandler);
         return r;
     }
@@ -260,7 +292,21 @@ public class ProjectionService extends Service {
         }
         if (old != null) {
             old.setOnImageAvailableListener(null, null);
-            old.close();
+            synchronized (lock) {
+                // 旧 reader 的图像随 reader 一起失效：丢弃待发布帧，保留显示中的位图到下一帧替换
+                if (pendingImg != null) { pendingImg.close(); pendingImg = null; pendingHw = null; backNew = false; }
+            }
+            final ImageReader o = old;
+            final Image a, b2;
+            synchronized (lock) { a = shownImg; b2 = prevImg; }
+            // 延迟关闭，避免正在显示的硬件位图对应缓冲被立即回收
+            captureHandler.postDelayed(() -> {
+                synchronized (lock) {
+                    if (shownImg == a) shownImg = null;
+                    if (prevImg == b2) prevImg = null;
+                }
+                o.close();
+            }, 500);
         }
     }
 
@@ -288,7 +334,7 @@ public class ProjectionService extends Service {
                 if (now - lastFrameAt < IDLE_FRAME_MS) return;
                 publish = true;
             } else if (Prefs.mode(prefs) == Prefs.MODE_LIVE) {
-                if (now - lastFrameAt < LIVE_FRAME_MS) return;
+                if (now - lastFrameAt < minFrameMs()) return;
                 publish = true;
             } else {
                 // 间歇刷新：只接收悬浮层隐藏期间的帧，恢复显示时再统一发布
@@ -296,12 +342,59 @@ public class ProjectionService extends Service {
                 publish = false;
             }
             lastFrameAt = now;
+            if (hwPath && hwOk) {
+                Image keep = img;
+                img = null; // 由 hw 队列负责关闭
+                if (!queueHw(keep)) { hwOk = false; }
+                if (publish) postSwap();
+                return;
+            }
             copyToBack(img);
             if (publish) postSwap();
         } catch (Exception e) {
             Log.w(TAG, "frame error", e);
         } finally {
-            img.close();
+            if (img != null) img.close();
+        }
+    }
+
+    private volatile boolean hwOk = true;
+    // 硬件路径：pendingImg 等待发布；shownImg / prevImg 为正在显示（及上一帧，可能仍在 RenderThread 绘制中）
+    private Image pendingImg, shownImg, prevImg;
+    private Bitmap pendingHw;
+
+    /** 抓帧线程：把 Image 包装为硬件位图放入待发布槽。返回 false 表示不支持，改走拷贝路径。 */
+    private boolean queueHw(Image img) {
+        Bitmap b = null;
+        try {
+            android.hardware.HardwareBuffer hb = img.getHardwareBuffer();
+            if (hb != null) {
+                b = Bitmap.wrapHardwareBuffer(hb, android.graphics.ColorSpace.get(android.graphics.ColorSpace.Named.SRGB));
+                hb.close();
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "wrapHardwareBuffer failed", t);
+        }
+        if (b == null) { img.close(); return false; }
+        Image old;
+        synchronized (lock) {
+            old = pendingImg;
+            pendingImg = img;
+            pendingHw = b;
+            backW = img.getWidth(); backH = img.getHeight();
+            backNew = true;
+        }
+        if (old != null) old.close();
+        return true;
+    }
+
+    private void closeHwImages() {
+        synchronized (lock) {
+            for (Image i : new Image[]{pendingImg, shownImg, prevImg}) {
+                if (i != null) try { i.close(); } catch (Exception ignored) {}
+            }
+            pendingImg = shownImg = prevImg = null;
+            pendingHw = null;
         }
     }
 
@@ -346,7 +439,18 @@ public class ProjectionService extends Service {
     private void swapNow() {
         synchronized (lock) {
             swapPosted = false;
-            if (backNew) {
+            if (backNew && pendingImg != null) {
+                Image drop = prevImg;
+                prevImg = shownImg;
+                shownImg = pendingImg;
+                pendingImg = null;
+                frontBmp = pendingHw;
+                pendingHw = null;
+                frontW = backW; frontH = backH;
+                backNew = false;
+                if (drop != null) try { drop.close(); } catch (Exception ignored) {}
+            } else if (backNew) {
+                if (frontBmp != null && frontBmp.getConfig() == Bitmap.Config.HARDWARE) frontBmp = null;
                 Bitmap t = frontBmp; frontBmp = backBmp; backBmp = t;
                 frontW = backW; frontH = backH;
                 backNew = false;
@@ -432,6 +536,17 @@ public class ProjectionService extends Service {
             splitLp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         }
         splitLp.setTitle("ParallelEyeSplit");
+        // 请求屏幕最高刷新率（90/120Hz 屏幕上避免被限制在 60Hz）
+        try {
+            android.view.Display d = getSystemService(DisplayManager.class).getDisplay(android.view.Display.DEFAULT_DISPLAY);
+            android.view.Display.Mode cur = d.getMode(), best = cur;
+            for (android.view.Display.Mode m : d.getSupportedModes()) {
+                if (m.getPhysicalWidth() == cur.getPhysicalWidth() && m.getPhysicalHeight() == cur.getPhysicalHeight()
+                        && m.getRefreshRate() > best.getRefreshRate()) best = m;
+            }
+            splitLp.preferredDisplayModeId = best.getModeId();
+            splitLp.preferredRefreshRate = best.getRefreshRate();
+        } catch (Exception ignored) {}
         try {
             wm.addView(splitView, splitLp);
         } catch (Exception e) {
@@ -843,7 +958,7 @@ public class ProjectionService extends Service {
         if (vd != null) vd.release();
         if (r != null) {
             r.setOnImageAvailableListener(null, null);
-            captureHandler.post(r::close);
+            captureHandler.post(() -> { closeHwImages(); r.close(); });
         }
         if (projection != null) {
             try {
