@@ -110,6 +110,7 @@ public class ProjectionService extends Service {
         captureThread.start();
         captureHandler = new Handler(captureThread.getLooper());
         createChannel();
+        if (Prefs.realtime(prefs)) ShizukuHelper.get(this).ensureBound();
     }
 
     @Override
@@ -358,7 +359,7 @@ public class ProjectionService extends Service {
 
     private final Runnable hideForCapture = new Runnable() {
         @Override public void run() {
-            if (!splitOn || injecting || Prefs.mode(prefs) != Prefs.MODE_INTERVAL) return;
+            if (!splitOn || injecting || rtActive || Prefs.mode(prefs) != Prefs.MODE_INTERVAL) return;
             hiddenForCapture = true;
             if (splitView != null) splitView.setTransparent(true);
             if (bubble != null) bubble.setAlpha(0f);
@@ -470,7 +471,73 @@ public class ProjectionService extends Service {
         @Override public void onRotationChanged(int deg) {
             if (bubble != null) bubble.setRotation(splitOn ? deg : 0);
         }
+
+        @Override public boolean realtimeAvailable() {
+            if (!Prefs.realtime(prefs)) return false;
+            ShizukuHelper h = ShizukuHelper.get(ProjectionService.this);
+            if (h.isReady()) return true;
+            h.ensureBound();
+            shizukuFallbackToast();
+            return false;
+        }
+
+        @Override public void onRealtimeEvent(int action, float x, float y) {
+            realtimeEvent(action, x, y);
+        }
     };
+
+    // ---------------------------------------------------------------- 实时操控（Shizuku）
+
+    /** 等待 FLAG_NOT_TOUCHABLE 生效（同步到 InputDispatcher）后才开始注入。 */
+    private static final long RT_SETTLE_MS = 60;
+    private long rtStartAt, rtDownTime;
+    private int rtSeq;
+    private boolean rtActive;
+    private long lastShizukuToast;
+
+    private void shizukuFallbackToast() {
+        long now = SystemClock.uptimeMillis();
+        if (now - lastShizukuToast < 5000) return;
+        lastShizukuToast = now;
+        Toast.makeText(this, "Shizuku 未运行或未授权，已改用无障碍回放（松手后执行）", Toast.LENGTH_SHORT).show();
+    }
+
+    private void realtimeEvent(int action, float x, float y) {
+        ShizukuHelper h = ShizukuHelper.get(this);
+        long now = SystemClock.uptimeMillis();
+        if (action == MotionEvent.ACTION_DOWN) {
+            if (injecting) return; // 无障碍回放进行中
+            rtActive = true;
+            rtSeq++;
+            main.removeCallbacks(hideForCapture);
+            main.removeCallbacks(commitCapture);
+            if (hiddenForCapture) {
+                hiddenForCapture = false;
+                if (splitView != null) splitView.setTransparent(false);
+                if (bubble != null) bubble.setAlpha(1f);
+            }
+            // 当前这根手指的事件流仍发给分屏层（系统不会对进行中的触摸重新命中），新注入的事件则穿透到下面的应用
+            setPassThrough(true);
+            rtStartAt = now + RT_SETTLE_MS;
+            rtDownTime = rtStartAt;
+            h.post(action, x, y, rtDownTime, 0, RT_SETTLE_MS);
+            return;
+        }
+        if (!rtActive) return;
+        long delay = Math.max(0, rtStartAt - now);
+        h.post(action, x, y, rtDownTime, 0, delay);
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            final int seq = rtSeq;
+            h.after(() -> {
+                if (seq != rtSeq || !rtActive) return;
+                rtActive = false;
+                if (!injecting) {
+                    setPassThrough(false);
+                    restartIntervalCycle();
+                }
+            }, delay + 40);
+        }
+    }
 
     private void a11yMissingToast() {
         long now = SystemClock.uptimeMillis();
@@ -511,7 +578,7 @@ public class ProjectionService extends Service {
     private void injectStrokes(java.util.List<SplitView.Stroke> strokes) {
         final GestureService g = GestureService.instance;
         if (g == null) { a11yMissingToast(); return; }
-        if (injecting || !splitOn) return;
+        if (injecting || rtActive || !splitOn) return;
         injecting = true;
         final int seq = ++injectSeq;
         // 暂停间歇刷新，放行触摸
@@ -593,6 +660,7 @@ public class ProjectionService extends Service {
 
     private void hideSplit() {
         if (injecting) { injecting = false; injectSeq++; setPassThrough(false); }
+        if (rtActive) { rtActive = false; rtSeq++; setPassThrough(false); }
         main.removeCallbacks(hideForCapture);
         main.removeCallbacks(commitCapture);
         hiddenForCapture = false;

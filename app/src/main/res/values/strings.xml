@@ -3,10 +3,10 @@
     <string name="app_name">平行眼分屏</string>
     <string name="a11y_label">平行眼分屏·可操控半屏</string>
     <string name="a11y_desc">用于“可操控半屏”功能：分屏开启时，把你在指定半屏画面上的点按、长按和滑动，换算成真实屏幕位置后代为执行，从而在分屏状态下操作下面的应用。本服务只模拟手势，不读取屏幕内容、不收集任何数据。</string>
-    <string name="control_title">可操控半屏（需开启无障碍服务）</string>
+    <string name="control_title">可操控半屏</string>
     <string name="control_off">关闭</string>
-    <string name="control_left">左半屏可操控</string>
-    <string name="control_right">右半屏可操控</string>
+    <string name="control_left">左半屏</string>
+    <string name="control_right">右半屏</string>
     <string name="btn_a11y">开启无障碍服务</string>
     <string name="btn_app_info">应用信息</string>
     <string name="fit_title">画面适配</string>

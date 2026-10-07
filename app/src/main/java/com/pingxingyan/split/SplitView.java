@@ -38,6 +38,10 @@ public class SplitView extends View {
         void onControlTouchStart();
         /** 画面整体旋转角度变化（0 / 90 / -90），用于同步旋转悬浮按钮文字。 */
         void onRotationChanged(int deg);
+        /** 是否使用 Shizuku 实时注入（否则松手后用无障碍回放）。 */
+        boolean realtimeAvailable();
+        /** 实时注入一个单指事件（真实屏幕坐标）。action: DOWN/MOVE/UP/CANCEL。 */
+        void onRealtimeEvent(int action, float x, float y);
     }
 
     /** 一次单指操作：真实屏幕坐标 + 时间戳（uptime 毫秒）。 */
@@ -78,7 +82,7 @@ public class SplitView extends View {
     private int axisLock; // 0 未定 1 水平 2 垂直
 
     // 触摸分流
-    private static final int T_NONE = 0, T_ADJUST = 1, T_CONTROL = 2;
+    private static final int T_NONE = 0, T_ADJUST = 1, T_CONTROL = 2, T_IGNORE = 3;
     private int touchMode = T_NONE;
     private Stroke curStroke;
     private boolean curCancelled;
@@ -336,6 +340,9 @@ public class SplitView extends View {
         return new float[]{sx, sy};
     }
 
+    private boolean rtActive;  // 当前这次触摸走实时注入
+    private boolean rtDown;    // 已注入 DOWN
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
@@ -349,19 +356,36 @@ public class SplitView extends View {
                 curCancelled = false;
                 downX = ev.getX(); downY = ev.getY();
                 curStroke = null;
+                rtActive = false;
+                rtDown = false;
                 float[] p = toScreen(g, l[0], l[1], false);
                 if (p != null) {
-                    curStroke = new Stroke();
-                    curStroke.pts.add(new double[]{p[0], p[1], ev.getEventTime()});
-                    if (listener != null) listener.onControlTouchStart();
+                    if (listener != null && listener.realtimeAvailable()) {
+                        rtActive = true;
+                        rtDown = true;
+                        listener.onRealtimeEvent(MotionEvent.ACTION_DOWN, p[0], p[1]);
+                    } else {
+                        curStroke = new Stroke();
+                        curStroke.pts.add(new double[]{p[0], p[1], ev.getEventTime()});
+                        if (listener != null) listener.onControlTouchStart();
+                    }
                 }
                 return true;
             }
-            touchMode = T_ADJUST;
+            // 快捷手势关闭：非可操控区域的触摸一律忽略（吞掉，不调节参数、不关闭分屏）
+            touchMode = Prefs.gestures(prefs) ? T_ADJUST : T_IGNORE;
         }
 
         if (touchMode == T_CONTROL) {
-            handleControl(ev, action);
+            if (rtActive) handleRealtime(ev, action);
+            else handleControl(ev, action);
+            return true;
+        }
+        if (touchMode == T_IGNORE) {
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                touchMode = T_NONE;
+                if (!batch.isEmpty()) postDelayed(flushBatch, BATCH_QUIET_MS);
+            }
             return true;
         }
 
@@ -372,6 +396,49 @@ public class SplitView extends View {
             if (!batch.isEmpty()) postDelayed(flushBatch, BATCH_QUIET_MS);
         }
         return true;
+    }
+
+    private void handleRealtime(MotionEvent ev, int action) {
+        Geo g;
+        float[] l, p;
+        switch (action) {
+            case MotionEvent.ACTION_POINTER_DOWN:
+                if (rtDown) {
+                    rtDown = false;
+                    l = toLogical(geo().rot, ev.getX(0), ev.getY(0));
+                    p = toScreen(geo(), l[0], l[1], true);
+                    if (p != null) listener.onRealtimeEvent(MotionEvent.ACTION_CANCEL, p[0], p[1]);
+                    showHint("可操控半屏暂不支持多指操作");
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (!rtDown) break;
+                g = geo();
+                for (int h = 0; h < ev.getHistorySize(); h++) {
+                    l = toLogical(g.rot, ev.getHistoricalX(0, h), ev.getHistoricalY(0, h));
+                    p = toScreen(g, l[0], l[1], true);
+                    if (p != null) listener.onRealtimeEvent(MotionEvent.ACTION_MOVE, p[0], p[1]);
+                }
+                l = toLogical(g.rot, ev.getX(0), ev.getY(0));
+                p = toScreen(g, l[0], l[1], true);
+                if (p != null) listener.onRealtimeEvent(MotionEvent.ACTION_MOVE, p[0], p[1]);
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (rtDown) {
+                    g = geo();
+                    l = toLogical(g.rot, ev.getX(0), ev.getY(0));
+                    p = toScreen(g, l[0], l[1], true);
+                    float x = p != null ? p[0] : 0, y = p != null ? p[1] : 0;
+                    listener.onRealtimeEvent(action == MotionEvent.ACTION_UP ? MotionEvent.ACTION_UP : MotionEvent.ACTION_CANCEL, x, y);
+                }
+                rtDown = false;
+                rtActive = false;
+                touchMode = T_NONE;
+                break;
+            default:
+                break;
+        }
     }
 
     private void handleControl(MotionEvent ev, int action) {

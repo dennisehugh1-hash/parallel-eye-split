@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_bg">#FF101418</color>
+    <color name="bg">#FFF2F4F7</color>
+    <color name="card">#FFFFFFFF</color>
+    <color name="accent">#FF3F51B5</color>
+    <color name="accentDark">#FF303F9F</color>
+    <color name="text">#FF1F2328</color>
+    <color name="text2">#FF5F6670</color>
+    <color name="divider">#FFE3E6EA</color>
+    <color name="ok">#FF1B7F2A</color>
+    <color name="bad">#FFB00020</color>
+    <color name="warn">#FFB26A00</color>
 </resources>

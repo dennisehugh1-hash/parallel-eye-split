@@ -1,294 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <TextView
-            android:id="@+id/status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:paddingBottom="8dp" />
-
-        <TextView
-            android:id="@+id/permHint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:paddingBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <Button
-                android:id="@+id/btnOverlayPerm"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="授予悬浮窗权限" />
-            <Button
-                android:id="@+id/btnNotifPerm"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="允许通知" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingTop="8dp">
-            <Button
-                android:id="@+id/btnStart"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="开始（申请录屏）" />
-            <Button
-                android:id="@+id/btnStop"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="停止" />
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/btnToggle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="打开 / 关闭分屏" />
-
-        <TextView
-            android:id="@+id/lblSep"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="16dp" />
-        <SeekBar
-            android:id="@+id/seekSep"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="12dp"
-            android:text="@string/orient_title" />
-        <RadioGroup
-            android:id="@+id/orientGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <RadioButton
-                android:id="@+id/orientForce"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/orient_force" />
-            <RadioButton
-                android:id="@+id/orientFollow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/orient_follow" />
-        </RadioGroup>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="8dp"
-            android:text="@string/dir_title" />
-        <RadioGroup
-            android:id="@+id/dirGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <RadioButton
-                android:id="@+id/dirAuto"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/dir_auto" />
-            <RadioButton
-                android:id="@+id/dirLeft"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/dir_left" />
-            <RadioButton
-                android:id="@+id/dirRight"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/dir_right" />
-        </RadioGroup>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:text="@string/dir_help" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="12dp"
-            android:text="@string/fit_title" />
-        <RadioGroup
-            android:id="@+id/fitGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <RadioButton
-                android:id="@+id/fitFill"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/fit_fill" />
-            <RadioButton
-                android:id="@+id/fitContain"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/fit_contain" />
-        </RadioGroup>
-        <CheckBox
-            android:id="@+id/chkDots"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/show_dots" />
-
-        <TextView
-            android:id="@+id/lblSize"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="12dp" />
-        <SeekBar
-            android:id="@+id/seekSize"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:id="@+id/lblOffset"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="12dp" />
-        <SeekBar
-            android:id="@+id/seekOffset"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:id="@+id/gestureHelp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="#FFEFF3F7"
-            android:padding="10dp"
-            android:textSize="13sp"
-            android:lineSpacingExtra="3dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="12dp"
-            android:text="刷新方式（防止“画中画”无限套娃）" />
-        <RadioGroup
-            android:id="@+id/modeGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <RadioButton
-                android:id="@+id/modeLive"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="实时（约30帧，需在录屏弹窗中选择“单个应用”）" />
-            <RadioButton
-                android:id="@+id/modeInterval"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="间歇刷新（整个屏幕也可用，会轻微闪烁）" />
-        </RadioGroup>
-
-        <TextView
-            android:id="@+id/lblInterval"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="8dp" />
-        <SeekBar
-            android:id="@+id/seekInterval"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="16dp"
-            android:textStyle="bold"
-            android:text="@string/control_title" />
-        <RadioGroup
-            android:id="@+id/controlGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <RadioButton
-                android:id="@+id/controlOff"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/control_off" />
-            <RadioButton
-                android:id="@+id/controlLeft"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/control_left" />
-            <RadioButton
-                android:id="@+id/controlRight"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/control_right" />
-        </RadioGroup>
-        <TextView
-            android:id="@+id/a11yStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="4dp"
-            android:textSize="14sp" />
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <Button
-                android:id="@+id/btnA11y"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_a11y" />
-            <Button
-                android:id="@+id/btnAppInfo"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_app_info" />
-        </LinearLayout>
-        <TextView
-            android:id="@+id/controlHelp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="13sp"
-            android:lineSpacingExtra="3dp" />
-
-        <Button
-            android:id="@+id/btnReset"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="恢复默认参数" />
-
-        <TextView
-            android:id="@+id/help"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="16dp"
-            android:textSize="13sp"
-            android:lineSpacingExtra="3dp" />
-    </LinearLayout>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/bg">
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+<LinearLayout style="@style/Card">
+<TextView style="@style/CardTitle" android:text="运行与权限" />
+<TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="16sp" android:textStyle="bold" android:paddingBottom="6dp" />
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="4dp">
+<TextView android:id="@+id/stCapture" style="@style/PermStatus" />
+<Button android:id="@+id/btnStart2" style="@style/SmallBtn" android:text="开始" />
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="4dp">
+<TextView android:id="@+id/stOverlay" style="@style/PermStatus" />
+<Button android:id="@+id/btnOverlayPerm" style="@style/SmallBtn" android:text="授予" />
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="4dp">
+<TextView android:id="@+id/stNotif" style="@style/PermStatus" />
+<Button android:id="@+id/btnNotifPerm" style="@style/SmallBtn" android:text="允许" />
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="4dp">
+<TextView android:id="@+id/a11yStatus" style="@style/PermStatus" />
+<Button android:id="@+id/btnA11y" style="@style/SmallBtn" android:text="去开启" />
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="4dp">
+<TextView android:id="@+id/stShizuku" style="@style/PermStatus" />
+<Button android:id="@+id/btnShizuku" style="@style/SmallBtn" android:text="授权" />
+</LinearLayout>
+<View style="@style/Divider" />
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+<Button android:id="@+id/btnStart" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="开始（申请录屏）" />
+<Button android:id="@+id/btnStop" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="停止" />
+</LinearLayout>
+<Button android:id="@+id/btnToggle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="打开 / 关闭分屏" />
+</LinearLayout>
+<LinearLayout style="@style/Card">
+<TextView style="@style/CardTitle" android:text="显示" />
+<TextView style="@style/Label" android:text="@string/fit_title" />
+<RadioGroup android:id="@+id/fitGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+<RadioButton android:id="@+id/fitFill" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/fit_fill" />
+<RadioButton android:id="@+id/fitContain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/fit_contain" />
+</RadioGroup>
+<CheckBox android:id="@+id/chkDots" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/show_dots" />
+<View style="@style/Divider" />
+<TextView android:id="@+id/lblSize" style="@style/Label" />
+<SeekBar android:id="@+id/seekSize" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
+<TextView android:id="@+id/lblOffset" style="@style/Label" />
+<SeekBar android:id="@+id/seekOffset" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
+</LinearLayout>
+<LinearLayout style="@style/Card">
+<TextView style="@style/CardTitle" android:text="分屏" />
+<TextView android:id="@+id/lblSep" style="@style/Label" />
+<SeekBar android:id="@+id/seekSep" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
+<View style="@style/Divider" />
+<TextView style="@style/Label" android:text="@string/orient_title" />
+<RadioGroup android:id="@+id/orientGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+<RadioButton android:id="@+id/orientForce" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/orient_force" />
+<RadioButton android:id="@+id/orientFollow" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/orient_follow" />
+</RadioGroup>
+<TextView style="@style/Label" android:text="@string/dir_title" />
+<RadioGroup android:id="@+id/dirGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+<RadioButton android:id="@+id/dirAuto" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/dir_auto" />
+<RadioButton android:id="@+id/dirLeft" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/dir_left" />
+<RadioButton android:id="@+id/dirRight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/dir_right" />
+</RadioGroup>
+<TextView style="@style/Hint" android:text="@string/dir_help" />
+</LinearLayout>
+<LinearLayout style="@style/Card">
+<TextView style="@style/CardTitle" android:text="交互操控" />
+<Switch android:id="@+id/swGestures" style="@style/SwitchRow" android:text="快捷手势（在分屏画面上调节参数、双击关闭）" />
+<TextView style="@style/Hint" android:id="@+id/gestureHelp" />
+<View style="@style/Divider" />
+<Switch android:id="@+id/swControl" style="@style/SwitchRow" android:text="可操控半屏" />
+<RadioGroup android:id="@+id/controlGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+<RadioButton android:id="@+id/controlLeft" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/control_left" />
+<RadioButton android:id="@+id/controlRight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/control_right" />
+</RadioGroup>
+<TextView style="@style/Hint" android:id="@+id/comboHint" />
+<View style="@style/Divider" />
+<Switch android:id="@+id/swRealtime" style="@style/SwitchRow" android:text="实时操控（需 Shizuku）" />
+<TextView style="@style/Hint" android:id="@+id/realtimeHelp" />
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+<Button android:id="@+id/btnShizukuApp" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Shizuku 下载/打开" />
+<Button android:id="@+id/btnAppInfo" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/btn_app_info" />
+</LinearLayout>
+<TextView style="@style/Hint" android:id="@+id/controlHelp" />
+</LinearLayout>
+<LinearLayout style="@style/Card">
+<TextView style="@style/CardTitle" android:text="刷新" />
+<TextView style="@style/Label" android:text="刷新方式（防止“画中画”无限套娃）" />
+<RadioGroup android:id="@+id/modeGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+<RadioButton android:id="@+id/modeLive" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="实时（约30帧，需在录屏弹窗中选择“单个应用”）" />
+<RadioButton android:id="@+id/modeInterval" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="间歇刷新（整个屏幕也可用，会轻微闪烁）" />
+</RadioGroup>
+<TextView android:id="@+id/lblInterval" style="@style/Label" />
+<SeekBar android:id="@+id/seekInterval" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
+</LinearLayout>
+<LinearLayout style="@style/Card">
+<TextView style="@style/CardTitle" android:text="关于" />
+<TextView android:id="@+id/version" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="@color/text" />
+<Button android:id="@+id/btnReset" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="恢复默认参数" />
+<TextView style="@style/Hint" android:id="@+id/help" />
+</LinearLayout>
+</LinearLayout>
 </ScrollView>

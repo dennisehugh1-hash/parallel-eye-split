@@ -18,6 +18,9 @@ public final class Prefs {
     public static final String K_SHOW_DOTS = "show_dots";
     public static final String K_SPLIT_ORIENT = "split_orient"; // 0=强制横屏 1=跟随系统方向
     public static final String K_LAND_DIR = "land_dir";         // 0=自动 1=向左 2=向右
+    public static final String K_GESTURES = "gestures";        // 快捷手势开关
+    public static final String K_CONTROL_SIDE = "control_side"; // 可操控半屏关闭时记住的一侧 1左 2右
+    public static final String K_REALTIME = "realtime";        // 实时操控（Shizuku）
     public static final String K_BUBBLE_X = "bubble_x";
     public static final String K_BUBBLE_Y = "bubble_y";
 
@@ -61,6 +64,13 @@ public final class Prefs {
     public static float offsetMm(SharedPreferences p) { return p.getFloat(K_OFFSET_MM, DEF_OFFSET_MM); }
     public static int mode(SharedPreferences p) { return p.getInt(K_MODE, defaultMode()); }
     public static int controlPane(SharedPreferences p) { return p.getInt(K_CONTROL_PANE, CONTROL_OFF); }
+    public static boolean gestures(SharedPreferences p) { return p.getBoolean(K_GESTURES, true); }
+    public static boolean realtime(SharedPreferences p) { return p.getBoolean(K_REALTIME, false); }
+    public static int controlSide(SharedPreferences p) {
+        int c = controlPane(p);
+        if (c != CONTROL_OFF) return c;
+        return p.getInt(K_CONTROL_SIDE, CONTROL_RIGHT) == CONTROL_LEFT ? CONTROL_LEFT : CONTROL_RIGHT;
+    }
     public static int splitOrient(SharedPreferences p) { return p.getInt(K_SPLIT_ORIENT, ORIENT_FORCE_LANDSCAPE); }
     public static int landDir(SharedPreferences p) { return p.getInt(K_LAND_DIR, DIR_AUTO); }
     public static int fitMode(SharedPreferences p) { return p.getInt(K_FIT_MODE, FIT_FILL); }
