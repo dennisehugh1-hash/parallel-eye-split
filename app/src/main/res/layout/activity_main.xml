@@ -42,13 +42,21 @@
 </LinearLayout>
 <LinearLayout style="@style/Card">
 <TextView style="@style/CardTitle" android:text="显示" />
-<TextView style="@style/Label" android:text="画质（捕获分辨率与帧率）" />
-<RadioGroup android:id="@+id/qualityGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/qHigh" style="@style/Seg" android:text="高" />
-<RadioButton android:id="@+id/qStd" style="@style/Seg" android:text="标准" />
-<RadioButton android:id="@+id/qSaver" style="@style/Seg" android:text="省电" />
+<TextView style="@style/Label" android:text="分辨率" />
+<RadioGroup android:id="@+id/resGroup" style="@style/SegGroup">
+<RadioButton android:id="@+id/res100" style="@style/Seg" android:text="100%" />
+<RadioButton android:id="@+id/res75" style="@style/Seg" android:text="75%" />
+<RadioButton android:id="@+id/res50" style="@style/Seg" android:text="50%" />
 </RadioGroup>
-<TextView style="@style/Hint" android:id="@+id/qualityHint" />
+<TextView style="@style/Label" android:text="帧率" />
+<RadioGroup android:id="@+id/fpsGroup" style="@style/SegGroup">
+<RadioButton android:id="@+id/fpsFollow" style="@style/Seg" android:text="跟随屏幕" />
+<RadioButton android:id="@+id/fps60" style="@style/Seg" android:text="60" />
+<RadioButton android:id="@+id/fps30" style="@style/Seg" android:text="30" />
+</RadioGroup>
+<TextView android:id="@+id/qualityHint" style="@style/Hint" />
+<Switch android:id="@+id/swGpu" style="@style/PillSwitch" android:text="GPU 直接绘制" />
+<TextView android:id="@+id/gpuHint" style="@style/Hint" />
 <View style="@style/Divider" />
 <TextView style="@style/Label" android:text="@string/fit_title" />
 <RadioGroup android:id="@+id/fitGroup" style="@style/SegGroup">
@@ -111,6 +119,13 @@
 </LinearLayout>
 <LinearLayout style="@style/Card">
 <TextView style="@style/CardTitle" android:text="刷新" />
+<TextView style="@style/Label" android:text="捕获范围" />
+<RadioGroup android:id="@+id/scopeGroup" style="@style/SegGroup">
+<RadioButton android:id="@+id/scopeDisplay" style="@style/Seg" android:text="强制整个屏幕" />
+<RadioButton android:id="@+id/scopeApp" style="@style/Seg" android:text="弹窗中选择" />
+</RadioGroup>
+<TextView android:id="@+id/scopeHint" style="@style/Hint" />
+<View style="@style/Divider" />
 <TextView style="@style/Label" android:text="刷新方式（防止“画中画”无限套娃）" />
 <RadioGroup android:id="@+id/modeGroup" style="@style/SegGroup">
 <RadioButton android:id="@+id/modeLive" style="@style/Seg" android:text="实时" />

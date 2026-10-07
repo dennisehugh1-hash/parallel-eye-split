@@ -24,6 +24,9 @@ public final class Prefs {
     public static final String K_QUALITY = "quality";          // 画质 0高 1标准 2省电
     public static final String K_SHOW_FPS = "show_fps";
     public static final int Q_HIGH = 0, Q_STD = 1, Q_SAVER = 2;
+    public static final String K_SCOPE = "capture_scope";      // 0=强制整个屏幕 1=在系统弹窗中选择（默认）
+    public static final int SCOPE_DISPLAY = 0, SCOPE_APP = 1;
+    public static final String K_GPU = "gpu_direct";          // 高画质下 GPU 直接绘制（默认关）
     public static final String K_BUBBLE_X = "bubble_x";
     public static final String K_BUBBLE_Y = "bubble_y";
 
@@ -70,6 +73,21 @@ public final class Prefs {
     public static boolean gestures(SharedPreferences p) { return p.getBoolean(K_GESTURES, true); }
     public static int quality(SharedPreferences p) { return p.getInt(K_QUALITY, Q_HIGH); }
     public static boolean showFps(SharedPreferences p) { return p.getBoolean(K_SHOW_FPS, false); }
+    public static int scope(SharedPreferences p) { return p.getInt(K_SCOPE, SCOPE_APP); }
+    public static final String K_RES = "res_pct";     // 分辨率 100/75/50
+    public static final String K_FPS = "fps_cap";     // 帧率 0=跟随屏幕 60 30
+    /** 未设置时从 v1.5 的“画质”迁移。 */
+    public static int resPct(SharedPreferences p) {
+        if (p.contains(K_RES)) return p.getInt(K_RES, 100);
+        int q = quality(p);
+        return q == Q_SAVER ? 50 : q == Q_STD ? 75 : 100;
+    }
+    public static int fpsCap(SharedPreferences p) {
+        if (p.contains(K_FPS)) return p.getInt(K_FPS, 0);
+        int q = quality(p);
+        return q == Q_SAVER ? 30 : q == Q_STD ? 60 : 0;
+    }
+    public static boolean gpu(SharedPreferences p) { return p.getBoolean(K_GPU, false); }
     public static boolean realtime(SharedPreferences p) { return p.getBoolean(K_REALTIME, false); }
     public static int controlSide(SharedPreferences p) {
         int c = controlPane(p);

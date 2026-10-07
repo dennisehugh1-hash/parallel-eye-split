@@ -105,6 +105,13 @@ public class SplitView extends View {
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(16 * ctx.getResources().getDisplayMetrics().scaledDensity);
         setBackground(null);
+        // 强制不透明：截屏缓冲的 alpha 通道并不可靠（输入法等图层所在区域 alpha 可能为 0），
+        // 按原样绘制会让这些区域变成透明/黑色（v1.5 GPU 直接绘制时键盘“消失”的原因）
+        bmpPaint.setColorFilter(new android.graphics.ColorMatrixColorFilter(new float[]{
+                1, 0, 0, 0, 0,
+                0, 1, 0, 0, 0,
+                0, 0, 1, 0, 0,
+                0, 0, 0, 0, 255}));
 
         gestures = new GestureDetector(ctx, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDown(MotionEvent e) { axisLock = 0; return true; }

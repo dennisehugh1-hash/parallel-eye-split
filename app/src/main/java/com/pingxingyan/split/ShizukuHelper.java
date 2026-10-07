@@ -125,6 +125,13 @@ public final class ShizukuHelper {
         notifyChanged();
     }
 
+    /** 同步调用：返回 true 表示 shell 端设置成功。 */
+    public boolean setSkipScreenshot(android.view.SurfaceControl sc, boolean skip) {
+        IInjector i = injector;
+        if (i == null) return false;
+        try { return i.setSkipScreenshot(sc, skip); } catch (Throwable t) { return false; }
+    }
+
     /** 异步注入一个单指触摸事件（真实屏幕坐标）。 */
     public void post(int action, float x, float y, long downTime, long eventTime, long delayMs) {
         final IInjector i = injector;

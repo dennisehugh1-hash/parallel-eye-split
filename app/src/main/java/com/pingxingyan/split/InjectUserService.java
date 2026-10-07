@@ -55,6 +55,17 @@ public class InjectUserService extends IInjector.Stub {
     }
 
     @Override
+    public boolean setSkipScreenshot(android.view.SurfaceControl sc, boolean skip) {
+        try {
+            boolean ok = SkipCapture.applyLocal(sc, skip);
+            sc.release();
+            return ok;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    @Override
     public void destroy() {
         System.exit(0);
     }

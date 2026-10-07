@@ -29,7 +29,10 @@ public class MainActivity extends Activity {
     private RadioGroup modeGroup, controlGroup, fitGroup, orientGroup, dirGroup;
     private android.widget.CompoundButton chkDots, swFps;
     private android.widget.Switch swGestures;
-    private RadioGroup methodGroup, qualityGroup;
+    private RadioGroup methodGroup, resGroup, fpsGroup, scopeGroup;
+    private TextView gpuHint;
+    private android.widget.CompoundButton swGpu;
+    private TextView scopeHint;
     private Button btnShizuku, btnA11yBtn, btnOverlay, btnStart2;
     private final Runnable shizukuListener = this::refreshStatus;
     private TextView a11yStatus;
@@ -59,7 +62,31 @@ public class MainActivity extends Activity {
         orientHint = findViewById(R.id.orientHint);
         modeHint = findViewById(R.id.modeHint);
         methodGroup = findViewById(R.id.methodGroup);
-        qualityGroup = findViewById(R.id.qualityGroup);
+        resGroup = findViewById(R.id.resGroup);
+        fpsGroup = findViewById(R.id.fpsGroup);
+        swGpu = findViewById(R.id.swGpu);
+        gpuHint = findViewById(R.id.gpuHint);
+        resGroup.setOnCheckedChangeListener((g, id) -> {
+            if (updatingUi) return;
+            prefs.edit().putInt(Prefs.K_RES, id == R.id.res50 ? 50 : id == R.id.res75 ? 75 : 100).apply();
+        });
+        fpsGroup.setOnCheckedChangeListener((g, id) -> {
+            if (updatingUi) return;
+            prefs.edit().putInt(Prefs.K_FPS, id == R.id.fps30 ? 30 : id == R.id.fps60 ? 60 : 0).apply();
+        });
+        swGpu.setOnCheckedChangeListener((b, c) -> {
+            if (updatingUi) return;
+            prefs.edit().putBoolean(Prefs.K_GPU, c).apply();
+        });
+        scopeGroup = findViewById(R.id.scopeGroup);
+        scopeHint = findViewById(R.id.scopeHint);
+        scopeGroup.setOnCheckedChangeListener((g, id) -> {
+            if (updatingUi) return;
+            boolean disp = id == R.id.scopeDisplay;
+            // 整个屏幕会把分屏层自己录进去：必须用间歇刷新；单个应用可用实时
+            prefs.edit().putInt(Prefs.K_SCOPE, disp ? Prefs.SCOPE_DISPLAY : Prefs.SCOPE_APP).apply();
+            if (ProjectionService.running) Toast.makeText(this, "捕获范围在下次点“开始”时生效", Toast.LENGTH_LONG).show();
+        });
         swFps = findViewById(R.id.swFps);
         swGestures = findViewById(R.id.swGestures);
         btnShizuku = findViewById(R.id.btnShizuku);
@@ -74,10 +101,6 @@ public class MainActivity extends Activity {
         swFps.setOnCheckedChangeListener((b, c) -> {
             if (updatingUi) return;
             prefs.edit().putBoolean(Prefs.K_SHOW_FPS, c).apply();
-        });
-        qualityGroup.setOnCheckedChangeListener((g, id) -> {
-            if (updatingUi) return;
-            prefs.edit().putInt(Prefs.K_QUALITY, id == R.id.qSaver ? Prefs.Q_SAVER : id == R.id.qStd ? Prefs.Q_STD : Prefs.Q_HIGH).apply();
         });
         methodGroup.setOnCheckedChangeListener((g, id) -> {
             if (updatingUi) return;
@@ -210,8 +233,8 @@ public class MainActivity extends Activity {
                 "使用说明\n"
                 + "1. 先授予“显示在其他应用上层”（悬浮窗）权限；Android 13 及以上建议允许通知（用于显示“停止”按钮）。\n"
                 + "2. 点“开始”，在系统录屏弹窗中确认。Android 14 及以上每次开始都需要重新确认。\n"
-                + "   · 选“单个应用”：画面里不会出现本应用的分屏层，可用“实时”模式（约30帧）。\n"
-                + "   · 选“整个屏幕”：分屏层会被自己录进去形成套娃，请用“间歇刷新”模式。\n"
+                + "   · 录屏弹窗选“整个屏幕”（或设置里“捕获范围”选“强制整个屏幕”）：输入法、弹窗都能看到，防套娃生效时可用实时。\n"
+                + "   · 选“单个应用”：可用实时高帧率，但看不到输入法键盘。\n"
                 + "3. 点屏幕上的悬浮按钮“分屏”开启；再点“关闭”（或在开启快捷手势时双击分屏画面）关闭。长按悬浮按钮打开本设置页。悬浮按钮可拖动。\n"
                 + "4. 默认“强制横屏”：下面的应用（如抖音）保持竖屏不变，分屏画面横着显示——把手机横过来拿，就能看到左右两个竖着的画面。"
                 + "横拿方向默认按重力感应自动判断，也可在“横屏方向”里固定为向左或向右。选“跟随系统方向”则分屏画面与系统方向一致。\n"
@@ -263,15 +286,33 @@ public class MainActivity extends Activity {
         swGestures.setChecked(gOn);
         boolean rtOn = Prefs.realtime(prefs);
         methodGroup.check(!cOn ? R.id.methodOff : rtOn ? R.id.methodShizuku : R.id.methodA11y);
-        int q = Prefs.quality(prefs);
-        qualityGroup.check(q == Prefs.Q_SAVER ? R.id.qSaver : q == Prefs.Q_STD ? R.id.qStd : R.id.qHigh);
-        qualityHint.setText(q == Prefs.Q_HIGH ? "原生分辨率，帧率跟随屏幕刷新率（60/90/120Hz），GPU 直接绘制。最清晰，耗电较多。"
-                : q == Prefs.Q_STD ? "75% 分辨率，最高约 60 帧。画质与耗电平衡。"
-                : "50% 分辨率，最高约 30 帧（与 v1.4 及以前相同）。最省电。");
+        int rp = Prefs.resPct(prefs), fc = Prefs.fpsCap(prefs);
+        resGroup.check(rp == 50 ? R.id.res50 : rp == 75 ? R.id.res75 : R.id.res100);
+        fpsGroup.check(fc == 30 ? R.id.fps30 : fc == 60 ? R.id.fps60 : R.id.fpsFollow);
+        qualityHint.setText((rp == 100 ? "原生分辨率，最清晰。" : rp == 75 ? "75% 分辨率，清晰度与耗电平衡。" : "50% 分辨率，最省电（v1.4 及以前的画质）。")
+                + (fc == 0 ? "帧率跟随屏幕刷新率（60/90/120Hz）。" : "帧率最高约 " + fc + " 帧。"));
+        swGpu.setChecked(Prefs.gpu(prefs));
+        swGpu.setEnabled(Build.VERSION.SDK_INT >= 29);
+        gpuHint.setText(Build.VERSION.SDK_INT < 29 ? "需要 Android 10 及以上。"
+                : "开启：画面直接交给 GPU 绘制，省去每帧拷贝，帧率更高、更省电。v1.6 已修复键盘区域变透明的问题，"
+                + "但个别机型上输入法仍可能不显示，遇到时请关闭。关闭：CPU 拷贝画面，兼容性最好（默认）。");
         swFps.setChecked(Prefs.showFps(prefs));
+        boolean disp = Prefs.scope(prefs) == Prefs.SCOPE_DISPLAY;
+        scopeGroup.check(disp ? R.id.scopeDisplay : R.id.scopeApp);
+        int sk = ProjectionService.skipStatus;
+        boolean bad = disp && Prefs.mode(prefs) == Prefs.MODE_LIVE && (!SkipCapture.supported() || sk == SkipCapture.R_FAIL);
+        scopeHint.setText((disp ? "录制整个屏幕：输入法（键盘）、通知、弹窗都会显示在分屏里。"
+                + (!SkipCapture.supported() ? "本机系统低于 Android 12，无法把分屏层排除出录屏，只能用“间歇刷新”。"
+                : sk == SkipCapture.R_LOCAL || sk == SkipCapture.R_SHIZUKU ? "已尝试把分屏层排除出录屏（防套娃" + (sk == SkipCapture.R_SHIZUKU ? "，经 Shizuku" : "") + "），可用实时。若仍套娃请改用间歇刷新。"
+                : sk == SkipCapture.R_FAIL ? "分屏层排除失败，自动改用间歇刷新。可开启 Shizuku 后重新开始再试。"
+                : "开启分屏时会尝试把分屏层排除出录屏（防套娃），成功即可用实时。")
+                : "由系统录屏弹窗决定（默认，与 v1.5 相同）：选“单个应用”可稳定实时，但 Android 14+ 上输入法键盘和系统弹窗不属于该应用，可能不出现在分屏里；选“整个屏幕”则同下方说明。")
+                + (Build.VERSION.SDK_INT < 34 ? "（本机 Android 版本的录屏弹窗总是录整个屏幕）" : "")
+                + (bad ? "\n⚠ 防套娃不可用：整个屏幕下会自动使用间歇刷新。" : ""));
+        scopeHint.setTextColor(getColor(bad ? R.color.bad : R.color.text2));
         fitHint.setText(Prefs.fitMode(prefs) == Prefs.FIT_CONTAIN ? "等比完整显示，可能留黑边。" : "裁切边缘，铺满半屏。");
         orientHint.setText(Prefs.splitOrient(prefs) == Prefs.ORIENT_FOLLOW ? "分屏画面与系统方向一致。" : "应用保持竖屏，分屏画面横着显示，横拿手机观看。");
-        modeHint.setText(Prefs.mode(prefs) == Prefs.MODE_LIVE ? "持续刷新，需在录屏弹窗中选择“单个应用”。" : "整个屏幕也可用，每次刷新会轻微闪烁。");
+        modeHint.setText(Prefs.mode(prefs) == Prefs.MODE_LIVE ? "持续刷新。录整个屏幕时需防套娃生效，否则自动改为间歇刷新。" : "每次刷新会短暂隐藏分屏层抓取画面，轻微闪烁。");
         controlGroup.check(Prefs.controlSide(prefs) == Prefs.CONTROL_LEFT ? R.id.controlLeft : R.id.controlRight);
         for (int i = 0; i < controlGroup.getChildCount(); i++) controlGroup.getChildAt(i).setEnabled(cOn);
         String side = Prefs.controlSide(prefs) == Prefs.CONTROL_LEFT ? "左" : "右";
@@ -403,8 +444,10 @@ public class MainActivity extends Activity {
         MediaProjectionManager mpm = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
         Intent i;
         if (Build.VERSION.SDK_INT >= 34) {
-            // 让用户可在“单个应用 / 整个屏幕”之间选择（设备支持时）
-            i = mpm.createScreenCaptureIntent(MediaProjectionConfig.createConfigForUserChoice());
+            // 整个屏幕：强制捕获默认显示器（输入法、通知等系统窗口都会被录进来）；单个应用：让用户选择应用
+            i = mpm.createScreenCaptureIntent(Prefs.scope(prefs) == Prefs.SCOPE_DISPLAY
+                    ? MediaProjectionConfig.createConfigForDefaultDisplay()
+                    : MediaProjectionConfig.createConfigForUserChoice());
         } else {
             i = mpm.createScreenCaptureIntent();
         }

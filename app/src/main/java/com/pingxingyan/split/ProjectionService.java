@@ -95,7 +95,7 @@ public class ProjectionService extends Service {
     private final SharedPreferences.OnSharedPreferenceChangeListener prefListener = (p, key) -> {
         if (splitView != null) splitView.invalidate();
         if (Prefs.K_MODE.equals(key) || Prefs.K_INTERVAL_MS.equals(key)) restartIntervalCycle();
-        if (Prefs.K_QUALITY.equals(key) && virtualDisplay != null) {
+        if ((Prefs.K_RES.equals(key) || Prefs.K_GPU.equals(key)) && virtualDisplay != null) {
             Point sz = currentCaptureSource();
             captureHandler.post(() -> resizeCapture(scaled(sz.x), scaled(sz.y)));
         }
@@ -249,24 +249,27 @@ public class ProjectionService extends Service {
 
     /** 按画质设置缩放捕获分辨率：高=原生，标准=0.75，省电=0.5。 */
     private int scaled(int v) {
-        int q = Prefs.quality(prefs);
-        float f = q == Prefs.Q_HIGH ? 1f : q == Prefs.Q_STD ? 0.75f : 0.5f;
-        return Math.round(v * f);
+        return Math.round(v * Prefs.resPct(prefs) / 100f);
     }
 
     /** 帧间隔下限（毫秒）：高=屏幕刷新率，标准=60fps，省电=30fps。 */
     private long minFrameMs() {
-        int q = Prefs.quality(prefs);
-        if (q == Prefs.Q_SAVER) return 32;
-        if (q == Prefs.Q_STD) return 15;
-        return 0; // 由虚拟显示按屏幕刷新率产生帧
+        int f = Prefs.fpsCap(prefs);
+        if (f == 30) return 32;
+        if (f == 60) return 15;
+        return 0; // 跟随屏幕：由虚拟显示按屏幕刷新率产生帧
     }
 
     /** Android 10+：GPU 可直接采样的 ImageReader，帧以 HardwareBuffer 零拷贝包装成硬件位图绘制。 */
-    private final boolean hwPath = Build.VERSION.SDK_INT >= 29;
+    private boolean wantHw() {
+        return Build.VERSION.SDK_INT >= 29 && Prefs.gpu(prefs);
+    }
+    private volatile boolean hwPath = false; // 当前 reader 的类型
 
     private ImageReader newReader(int w, int h) {
         ImageReader r;
+        hwPath = wantHw();
+        hwOk = true;
         if (hwPath) {
             r = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 4,
                     android.hardware.HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE);
@@ -280,7 +283,7 @@ public class ProjectionService extends Service {
     /** 在抓帧线程调用。旋转后调整虚拟显示尺寸（不重建，Android 14 不允许重建）。 */
     private void resizeCapture(int w, int h) {
         w = even(w); h = even(h);
-        if (virtualDisplay == null || (w == capW && h == capH)) return;
+        if (virtualDisplay == null || (w == capW && h == capH && hwPath == wantHw())) return;
         ImageReader old = reader;
         capW = w; capH = h;
         reader = newReader(w, h);
@@ -333,7 +336,7 @@ public class ProjectionService extends Service {
             if (!splitOn) {
                 if (now - lastFrameAt < IDLE_FRAME_MS) return;
                 publish = true;
-            } else if (Prefs.mode(prefs) == Prefs.MODE_LIVE) {
+            } else if (mode() == Prefs.MODE_LIVE) {
                 if (now - lastFrameAt < minFrameMs()) return;
                 publish = true;
             } else {
@@ -463,7 +466,7 @@ public class ProjectionService extends Service {
 
     private final Runnable hideForCapture = new Runnable() {
         @Override public void run() {
-            if (!splitOn || injecting || rtActive || Prefs.mode(prefs) != Prefs.MODE_INTERVAL) return;
+            if (!splitOn || injecting || rtActive || mode() != Prefs.MODE_INTERVAL) return;
             hiddenForCapture = true;
             if (splitView != null) splitView.setTransparent(true);
             if (bubble != null) bubble.setAlpha(0f);
@@ -477,11 +480,47 @@ public class ProjectionService extends Service {
             swapNow();
             if (splitView != null) splitView.setTransparent(false);
             if (bubble != null) bubble.setAlpha(1f);
-            if (splitOn && Prefs.mode(prefs) == Prefs.MODE_INTERVAL) {
+            if (splitOn && mode() == Prefs.MODE_INTERVAL) {
                 main.postDelayed(hideForCapture, Prefs.intervalMs(prefs));
             }
         }
     };
+
+    // ---------------------------------------------------------------- 防套娃（整个屏幕 + 实时）
+
+    /** -1 未尝试；否则为 SkipCapture.R_*。 */
+    private int skipResult = -1;
+
+    /** 实际使用的刷新方式：录整个屏幕但分屏层未能从录屏中排除时，强制间歇刷新，避免无限套娃。 */
+    private int mode() {
+        int m = Prefs.mode(prefs);
+        if (m == Prefs.MODE_LIVE && capturingDisplay() && splitOn
+                && skipResult != SkipCapture.R_LOCAL && skipResult != SkipCapture.R_SHIZUKU) return Prefs.MODE_INTERVAL;
+        return m;
+    }
+
+    private boolean capturingDisplay() {
+        if (!gotContentResize) return Prefs.scope(prefs) == Prefs.SCOPE_DISPLAY || Build.VERSION.SDK_INT < 34;
+        Point d = realDisplaySize();
+        return (contentW == d.x && contentH == d.y) || (contentW == d.y && contentH == d.x);
+    }
+
+    public static volatile int skipStatus = -1;
+
+    private void applySkip() {
+        if (splitView == null) return;
+        int r = SkipCapture.apply(splitView, ShizukuHelper.get(this));
+        if (bubble != null) SkipCapture.apply(bubble, ShizukuHelper.get(this));
+        boolean changed = r != skipResult;
+        skipResult = r;
+        skipStatus = r;
+        if (changed) {
+            if (r == SkipCapture.R_FAIL && Prefs.mode(prefs) == Prefs.MODE_LIVE && capturingDisplay()) {
+                Toast.makeText(this, "无法把分屏层排除出录屏，已改用间歇刷新（防止套娃）", Toast.LENGTH_LONG).show();
+            }
+            restartIntervalCycle();
+        }
+    }
 
     private void restartIntervalCycle() {
         main.removeCallbacks(hideForCapture);
@@ -491,7 +530,7 @@ public class ProjectionService extends Service {
             if (splitView != null) splitView.setTransparent(false);
             if (bubble != null) bubble.setAlpha(1f);
         }
-        if (splitOn && Prefs.mode(prefs) == Prefs.MODE_INTERVAL) {
+        if (splitOn && mode() == Prefs.MODE_INTERVAL) {
             main.postDelayed(hideForCapture, 300);
         }
     }
@@ -556,6 +595,10 @@ public class ProjectionService extends Service {
             return;
         }
         tryHideSystemBars(splitView);
+        skipResult = -1;
+        splitView.post(this::applySkip);
+        // 窗口重新布局（旋转等）后图层可能重建，重新设置
+        splitView.addOnLayoutChangeListener((v, a, b, c, d, e, f, g, h) -> v.post(this::applySkip));
         startOrientationListener();
         splitOn = true;
         splitOnPublic = true;
