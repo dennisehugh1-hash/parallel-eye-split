@@ -31,6 +31,9 @@ public final class ShizukuHelper {
         return inst;
     }
 
+    /** 已初始化则返回实例，否则 null（不会触发 Shizuku 初始化）。 */
+    public static synchronized ShizukuHelper peek() { return inst; }
+
     private final Context app;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Handler worker;
@@ -138,6 +141,16 @@ public final class ShizukuHelper {
         if (i == null) return;
         worker.postDelayed(() -> {
             try { i.injectTouch(action, x, y, downTime, eventTime); }
+            catch (Throwable t) { Log.w(TAG, "inject failed", t); }
+        }, delayMs);
+    }
+
+    /** 异步注入多指事件（最多 5 指）。 */
+    public void postMulti(int action, int index, int[] ids, float[] xs, float[] ys, long downTime, long delayMs) {
+        final IInjector i = injector;
+        if (i == null) return;
+        worker.postDelayed(() -> {
+            try { i.injectMulti(action, index, ids, xs, ys, downTime); }
             catch (Throwable t) { Log.w(TAG, "inject failed", t); }
         }, delayMs);
     }

@@ -70,8 +70,8 @@ Accessibility mode: if the switch is greyed out ("Restricted setting"), open App
 - **键盘 / 通知：** Android 14+ 系统可能在录屏共享中隐藏键盘和通知（屏幕共享保护）。Android 15 可尝试开发者选项 →“停用屏幕共享保护”（Disable screen share protections）。
 - Capturing the entire screen records the overlay itself (feedback loop) unless exclusion works; use interval refresh then.
 - 录整个屏幕会把分屏层录进去（套娃），除非排除生效；此时请用间歇刷新。
-- Operable half is single-finger only; the view dims slightly while touching (Android touch pass-through rule).
-- 可操控半屏仅支持单指；触摸时画面会略变淡（Android 触摸穿透规则）。
+- Operable half supports multi-touch (up to 5 fingers); the view dims slightly while touching (Android touch pass-through rule).
+- 可操控半屏支持多指（最多 5 指）；触摸时画面会略变淡（Android 触摸穿透规则）。
 - Apps that block screen capture appear black; millimetre conversion depends on the reported screen DPI.
 - 禁止录屏的应用显示为黑色；毫米换算依赖厂商上报的屏幕 DPI。
 

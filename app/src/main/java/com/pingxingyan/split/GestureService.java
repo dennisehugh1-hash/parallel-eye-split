@@ -78,6 +78,8 @@ public class GestureService extends AccessibilityService {
         GestureDescription.Builder b = new GestureDescription.Builder();
         int maxStrokes = GestureDescription.getMaxStrokeCount();
         long maxDur = GestureDescription.getMaxGestureDuration();
+        strokes = new ArrayList<>(strokes);
+        strokes.sort((x, y) -> Long.compare(x.downTime(), y.downTime()));
         long t0 = strokes.get(0).downTime();
         long total = 0;
         int n = 0;

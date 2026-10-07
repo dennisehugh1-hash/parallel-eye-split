@@ -120,6 +120,7 @@
 <TextView style="@style/CardTitle" android:text="采集与刷新" />
 <Switch android:id="@+id/swFull" style="@style/PillSwitch" android:text="整屏捕获（实验）" />
 <TextView android:id="@+id/fullHint" style="@style/Hint" />
+<Button android:id="@+id/btnRestart" style="@style/TonalBtn" android:layout_marginLeft="0dp" android:layout_marginTop="6dp" android:visibility="gone" android:text="重新开始" />
 <View style="@style/Divider" />
 <TextView style="@style/Label" android:text="刷新方式" />
 <RadioGroup android:id="@+id/modeGroup" style="@style/SegGroup">
@@ -135,7 +136,9 @@
 <TextView style="@style/CardTitle" android:text="关于与调试" />
 <Switch android:id="@+id/swFps" style="@style/PillSwitch" android:text="显示帧率（调试用）" />
 <Button android:id="@+id/btnReset" style="@style/TonalBtn" android:layout_marginLeft="0dp" android:text="恢复默认参数" />
-<TextView style="@style/Hint" android:id="@+id/help" />
+<TextView android:id="@+id/help" style="@style/Hint" />
+<TextView android:id="@+id/crashInfo" style="@style/Hint" android:layout_marginTop="8dp" android:textIsSelectable="true" android:visibility="gone" />
+<Button android:id="@+id/btnClearCrash" style="@style/TonalBtn" android:layout_marginLeft="0dp" android:visibility="gone" android:text="清除异常记录" />
 </LinearLayout>
 </LinearLayout>
 </ScrollView>

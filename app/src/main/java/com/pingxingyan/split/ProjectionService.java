@@ -50,6 +50,11 @@ public class ProjectionService extends Service {
     public static final String ACTION_START = "com.pingxingyan.split.START";
     public static final String ACTION_STOP = "com.pingxingyan.split.STOP";
     public static final String ACTION_TOGGLE = "com.pingxingyan.split.TOGGLE";
+    public static final String ACTION_HIDE = "com.pingxingyan.split.HIDE";
+    /** 本次会话开始时“整屏捕获”的取值；设置页据此提示是否需要重新开始。 */
+    public static volatile boolean startedFull = false;
+    /** 录屏被系统结束但悬浮按钮仍保留（点按钮可重新开始）。 */
+    public static volatile boolean projectionLost = false;
     public static final String EXTRA_RESULT_CODE = "resultCode";
     public static final String EXTRA_DATA = "data";
 
@@ -107,6 +112,7 @@ public class ProjectionService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        CrashLog.install(this);
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         prefs = Prefs.get(this);
         prefs.registerOnSharedPreferenceChangeListener(prefListener);
@@ -114,7 +120,8 @@ public class ProjectionService extends Service {
         captureThread.start();
         captureHandler = new Handler(captureThread.getLooper());
         createChannel();
-        if (Prefs.realtime(prefs)) ShizukuHelper.get(this).ensureBound();
+        // 仅在选择“Shizuku 实时”时才初始化 Shizuku（默认完全不运行 Shizuku 相关代码）
+        if (Prefs.realtime(prefs) && Prefs.controlPane(prefs) != Prefs.CONTROL_OFF) ShizukuHelper.get(this).ensureBound();
     }
 
     @Override
@@ -125,7 +132,12 @@ public class ProjectionService extends Service {
             return START_NOT_STICKY;
         }
         if (ACTION_TOGGLE.equals(action)) {
-            if (projection != null) toggleSplit(); else stopEverything();
+            // 关闭分屏只隐藏分屏层，录屏与悬浮按钮继续运行；录屏已结束时引导重新开始，而不是退出
+            if (projection != null) toggleSplit(); else restartFromBubble();
+            return START_NOT_STICKY;
+        }
+        if (ACTION_HIDE.equals(action)) {
+            if (splitOn) hideSplit();
             return START_NOT_STICKY;
         }
         if (ACTION_START.equals(action)) {
@@ -159,6 +171,8 @@ public class ProjectionService extends Service {
                 return START_NOT_STICKY;
             }
             running = true;
+            projectionLost = false;
+            startedFull = Prefs.fullCapture(prefs);
             startCapture();
             showBubble();
             return START_NOT_STICKY;
@@ -173,8 +187,8 @@ public class ProjectionService extends Service {
     private final MediaProjection.Callback projectionCallback = new MediaProjection.Callback() {
         @Override
         public void onStop() {
-            // 用户在系统界面停止共享 / 锁屏等
-            main.post(ProjectionService.this::stopEverything);
+            // 系统结束了共享（状态栏“停止共享”、锁屏、共享的应用被关闭等）。不退出：保留悬浮按钮，点它即可重新开始
+            main.post(ProjectionService.this::onProjectionLost);
         }
 
         @Override
@@ -515,8 +529,10 @@ public class ProjectionService extends Service {
 
     private void applySkip() {
         if (splitView == null || !skipEnabled()) { skipStatus = -1; return; }
-        int r = SkipCapture.apply(splitView, ShizukuHelper.get(this));
-        if (bubble != null) SkipCapture.apply(bubble, ShizukuHelper.get(this));
+        // 只有选择了 Shizuku 操控方式才会用到 Shizuku
+        ShizukuHelper sh = Prefs.realtime(prefs) ? ShizukuHelper.get(this) : null;
+        int r = SkipCapture.apply(splitView, sh);
+        if (bubble != null) SkipCapture.apply(bubble, sh);
         boolean changed = r != skipResult;
         skipResult = r;
         skipStatus = r;
@@ -548,7 +564,35 @@ public class ProjectionService extends Service {
     }
 
     public void toggleSplit() {
-        if (splitOn) hideSplit(); else showSplit();
+        try {
+            if (projection == null) { restartFromBubble(); return; }
+            if (splitOn) hideSplit(); else showSplit();
+        } catch (Exception e) {
+            // 任何意外都不应让整个服务退出
+            Log.e(TAG, "toggle failed", e);
+            CrashLog.record(this, "开关分屏异常", e);
+        }
+    }
+
+    private void onProjectionLost() {
+        if (projection == null && projectionLost) return;
+        Log.w(TAG, "projection stopped by system");
+        CrashLog.record(this, "录屏被系统结束（MediaProjection.onStop）", new Exception("projection stopped"));
+        hideSplit();
+        releaseProjection();
+        projectionLost = true;
+        if (!running) return;
+        updateBubbleLook();
+        updateNotification();
+        Toast.makeText(this, "系统已结束录屏。点悬浮按钮可重新开始", Toast.LENGTH_LONG).show();
+    }
+
+    /** 录屏已结束时点悬浮按钮/通知：打开设置页并自动发起录屏授权。 */
+    private void restartFromBubble() {
+        if (!running) { stopEverything(); return; }
+        Intent i = new Intent(this, MainActivity.class).putExtra(MainActivity.EXTRA_AUTOSTART, true);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        try { startActivity(i); } catch (Exception e) { Log.w(TAG, "restart failed", e); }
     }
 
     private void showSplit() {
@@ -571,6 +615,9 @@ public class ProjectionService extends Service {
                         | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT);
         splitLp.gravity = Gravity.TOP | Gravity.START;
+        // 不设置 FLAG_SPLIT_TOUCH：同一次触摸的后续手指（POINTER_DOWN）都交给分屏层，
+        // 即使实时操控时分屏层已临时设为 NOT_TOUCHABLE，也不会被系统重新命中到下面的应用
+        splitLp.flags &= ~WindowManager.LayoutParams.FLAG_SPLIT_TOUCH;
         // 不再强制横屏：跟随屏幕当前方向。尽量铺满整个屏幕（含刘海区域、系统栏下方）
         if (Build.VERSION.SDK_INT >= 30) {
             splitLp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
@@ -648,8 +695,8 @@ public class ProjectionService extends Service {
             return false;
         }
 
-        @Override public void onRealtimeEvent(int action, float x, float y) {
-            realtimeEvent(action, x, y);
+        @Override public void onRealtimeMulti(int action, int index, int[] ids, float[] xs, float[] ys) {
+            realtimeEvent(action, index, ids, xs, ys);
         }
     };
 
@@ -669,7 +716,7 @@ public class ProjectionService extends Service {
         Toast.makeText(this, "Shizuku 未运行或未授权，已改用无障碍回放（松手后执行）", Toast.LENGTH_SHORT).show();
     }
 
-    private void realtimeEvent(int action, float x, float y) {
+    private void realtimeEvent(int action, int index, int[] ids, float[] xs, float[] ys) {
         ShizukuHelper h = ShizukuHelper.get(this);
         long now = SystemClock.uptimeMillis();
         if (action == MotionEvent.ACTION_DOWN) {
@@ -687,12 +734,12 @@ public class ProjectionService extends Service {
             setPassThrough(true);
             rtStartAt = now + RT_SETTLE_MS;
             rtDownTime = rtStartAt;
-            h.post(action, x, y, rtDownTime, 0, RT_SETTLE_MS);
+            h.postMulti(action, index, ids, xs, ys, rtDownTime, RT_SETTLE_MS);
             return;
         }
         if (!rtActive) return;
         long delay = Math.max(0, rtStartAt - now);
-        h.post(action, x, y, rtDownTime, 0, delay);
+        h.postMulti(action, index, ids, xs, ys, rtDownTime, delay);
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
             final int seq = rtSeq;
             h.after(() -> {
@@ -926,7 +973,7 @@ public class ProjectionService extends Service {
 
     private void updateBubbleLook() {
         if (bubble == null) return;
-        bubble.setText(splitOn ? "关闭" : "分屏");
+        bubble.setText(projection == null ? "开始" : splitOn ? "关闭" : "分屏");
         bubble.setBackgroundResource(splitOn ? R.drawable.bubble_bg_on : R.drawable.bubble_bg);
     }
 
@@ -983,7 +1030,8 @@ public class ProjectionService extends Service {
         return new Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle("平行眼分屏运行中")
-                .setContentText(splitOn ? "分屏已开启（双击画面或点悬浮按钮关闭）" : "点悬浮按钮开启分屏；长按悬浮按钮打开设置")
+                .setContentText(projection == null && projectionLost ? "录屏已被系统结束，点悬浮按钮重新开始"
+                        : splitOn ? "分屏已开启（点悬浮按钮关闭分屏）" : "点悬浮按钮开启分屏；长按打开设置")
                 .setOngoing(true)
                 .setContentIntent(open)
                 .addAction(new Notification.Action.Builder(null, splitOn ? "关闭分屏" : "开启分屏", toggle).build())
@@ -1022,6 +1070,7 @@ public class ProjectionService extends Service {
     }
 
     private void stopEverything() {
+        projectionLost = false;
         hideSplit();
         removeBubble();
         releaseProjection();

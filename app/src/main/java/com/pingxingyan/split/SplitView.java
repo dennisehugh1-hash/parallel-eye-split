@@ -40,8 +40,8 @@ public class SplitView extends View {
         void onRotationChanged(int deg);
         /** 是否使用 Shizuku 实时注入（否则松手后用无障碍回放）。 */
         boolean realtimeAvailable();
-        /** 实时注入一个单指事件（真实屏幕坐标）。action: DOWN/MOVE/UP/CANCEL。 */
-        void onRealtimeEvent(int action, float x, float y);
+        /** 实时注入一个多指事件（真实屏幕坐标）。action 为 ACTION_*（不含指针下标），index 为 POINTER_DOWN/UP 的手指下标。 */
+        void onRealtimeMulti(int action, int index, int[] ids, float[] xs, float[] ys);
     }
 
     /** 一次单指操作：真实屏幕坐标 + 时间戳（uptime 毫秒）。 */
@@ -90,9 +90,7 @@ public class SplitView extends View {
     // 触摸分流
     private static final int T_NONE = 0, T_ADJUST = 1, T_CONTROL = 2, T_IGNORE = 3;
     private int touchMode = T_NONE;
-    private Stroke curStroke;
     private boolean curCancelled;
-    private float downX, downY;
     private final ArrayList<Stroke> batch = new ArrayList<>();
     private final Runnable flushBatch = this::flushBatch;
 
@@ -373,8 +371,12 @@ public class SplitView extends View {
         return new float[]{sx, sy};
     }
 
+    private static final int MAX_POINTERS = 5;
     private boolean rtActive;  // 当前这次触摸走实时注入
     private boolean rtDown;    // 已注入 DOWN
+    /** 无障碍回放：每根手指（pointerId）一条轨迹。 */
+    private final android.util.SparseArray<Stroke> liveStrokes = new android.util.SparseArray<>();
+    private final android.util.SparseArray<float[]> downPos = new android.util.SparseArray<>();
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -387,21 +389,20 @@ public class SplitView extends View {
             if (inControlHalf(g, l[0], l[1])) {
                 touchMode = T_CONTROL;
                 curCancelled = false;
-                downX = ev.getX(); downY = ev.getY();
-                curStroke = null;
+                liveStrokes.clear();
+                downPos.clear();
                 rtActive = false;
                 rtDown = false;
                 float[] p = toScreen(g, l[0], l[1], false);
-                if (p != null) {
-                    if (listener != null && listener.realtimeAvailable()) {
-                        rtActive = true;
-                        rtDown = true;
-                        listener.onRealtimeEvent(MotionEvent.ACTION_DOWN, p[0], p[1]);
-                    } else {
-                        curStroke = new Stroke();
-                        curStroke.pts.add(new double[]{p[0], p[1], ev.getEventTime()});
-                        if (listener != null) listener.onControlTouchStart();
-                    }
+                if (p == null) {
+                    curCancelled = true; // 按在画面外（黑边），忽略整次触摸
+                } else if (listener != null && listener.realtimeAvailable()) {
+                    rtActive = true;
+                    rtDown = true;
+                    sendRealtime(ev, MotionEvent.ACTION_DOWN, 0);
+                } else {
+                    startStroke(g, ev, 0);
+                    if (listener != null) listener.onControlTouchStart();
                 }
                 return true;
             }
@@ -431,40 +432,61 @@ public class SplitView extends View {
         return true;
     }
 
+    /** 把当前事件的全部手指（最多 5 根）映射到真实屏幕坐标后实时注入。index 为 POINTER_DOWN/UP 对应的手指下标。 */
+    private void sendRealtime(MotionEvent ev, int action, int index) {
+        if (listener == null) return;
+        Geo g = geo();
+        int n = Math.min(ev.getPointerCount(), MAX_POINTERS);
+        if (index >= n) return; // 第 6 根及以后的手指忽略
+        int[] ids = new int[n];
+        float[] xs = new float[n], ys = new float[n];
+        for (int k = 0; k < n; k++) {
+            float[] l = toLogical(g.rot, ev.getX(k), ev.getY(k));
+            float[] p = toScreen(g, l[0], l[1], true);
+            if (p == null) return;
+            ids[k] = ev.getPointerId(k);
+            xs[k] = p[0];
+            ys[k] = p[1];
+        }
+        listener.onRealtimeMulti(action, index, ids, xs, ys);
+    }
+
     private void handleRealtime(MotionEvent ev, int action) {
-        Geo g;
-        float[] l, p;
+        if (!rtDown) {
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) { rtActive = false; touchMode = T_NONE; }
+            return;
+        }
+        int idx = ev.getActionIndex();
         switch (action) {
             case MotionEvent.ACTION_POINTER_DOWN:
-                if (rtDown) {
-                    rtDown = false;
-                    l = toLogical(geo().rot, ev.getX(0), ev.getY(0));
-                    p = toScreen(geo(), l[0], l[1], true);
-                    if (p != null) listener.onRealtimeEvent(MotionEvent.ACTION_CANCEL, p[0], p[1]);
-                    showHint("可操控半屏暂不支持多指操作");
-                }
+                sendRealtime(ev, MotionEvent.ACTION_POINTER_DOWN, idx);
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                sendRealtime(ev, MotionEvent.ACTION_POINTER_UP, idx);
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (!rtDown) break;
-                g = geo();
-                for (int h = 0; h < ev.getHistorySize(); h++) {
-                    l = toLogical(g.rot, ev.getHistoricalX(0, h), ev.getHistoricalY(0, h));
-                    p = toScreen(g, l[0], l[1], true);
-                    if (p != null) listener.onRealtimeEvent(MotionEvent.ACTION_MOVE, p[0], p[1]);
+                // 历史采样点逐个注入，保留滑动轨迹细节
+                if (ev.getHistorySize() > 0 && listener != null) {
+                    Geo g = geo();
+                    int n = Math.min(ev.getPointerCount(), MAX_POINTERS);
+                    for (int h = 0; h < ev.getHistorySize(); h++) {
+                        int[] ids = new int[n];
+                        float[] xs = new float[n], ys = new float[n];
+                        boolean ok = true;
+                        for (int k = 0; k < n && ok; k++) {
+                            float[] l = toLogical(g.rot, ev.getHistoricalX(k, h), ev.getHistoricalY(k, h));
+                            float[] p = toScreen(g, l[0], l[1], true);
+                            if (p == null) { ok = false; break; }
+                            ids[k] = ev.getPointerId(k); xs[k] = p[0]; ys[k] = p[1];
+                        }
+                        if (ok) listener.onRealtimeMulti(MotionEvent.ACTION_MOVE, 0, ids, xs, ys);
+                    }
                 }
-                l = toLogical(g.rot, ev.getX(0), ev.getY(0));
-                p = toScreen(g, l[0], l[1], true);
-                if (p != null) listener.onRealtimeEvent(MotionEvent.ACTION_MOVE, p[0], p[1]);
+                sendRealtime(ev, MotionEvent.ACTION_MOVE, 0);
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                if (rtDown) {
-                    g = geo();
-                    l = toLogical(g.rot, ev.getX(0), ev.getY(0));
-                    p = toScreen(g, l[0], l[1], true);
-                    float x = p != null ? p[0] : 0, y = p != null ? p[1] : 0;
-                    listener.onRealtimeEvent(action == MotionEvent.ACTION_UP ? MotionEvent.ACTION_UP : MotionEvent.ACTION_CANCEL, x, y);
-                }
+                sendRealtime(ev, action, 0);
                 rtDown = false;
                 rtActive = false;
                 touchMode = T_NONE;
@@ -474,45 +496,71 @@ public class SplitView extends View {
         }
     }
 
+    private void startStroke(Geo g, MotionEvent ev, int k) {
+        if (liveStrokes.size() >= MAX_POINTERS) return;
+        float[] l = toLogical(g.rot, ev.getX(k), ev.getY(k));
+        float[] p = toScreen(g, l[0], l[1], true);
+        if (p == null) return;
+        Stroke st = new Stroke();
+        st.pts.add(new double[]{p[0], p[1], ev.getEventTime()});
+        int id = ev.getPointerId(k);
+        liveStrokes.put(id, st);
+        downPos.put(id, new float[]{ev.getX(k), ev.getY(k)});
+    }
+
+    private void endStroke(Geo g, MotionEvent ev, int k) {
+        int id = ev.getPointerId(k);
+        Stroke st = liveStrokes.get(id);
+        if (st == null) return;
+        liveStrokes.remove(id);
+        if (st.isTap) {
+            double[] p0 = st.pts.get(0);
+            st.pts.add(new double[]{p0[0], p0[1], ev.getEventTime()});
+        } else {
+            addPoint(g, st, ev.getX(k), ev.getY(k), ev.getEventTime());
+        }
+        batch.add(st);
+    }
+
+    /** 无障碍回放：记录每根手指的轨迹，全部抬起后作为多条并行笔画一起回放（支持双指缩放等）。 */
     private void handleControl(MotionEvent ev, int action) {
+        if (curCancelled) {
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) touchMode = T_NONE;
+            return;
+        }
+        Geo g = geo();
         switch (action) {
             case MotionEvent.ACTION_POINTER_DOWN:
-                if (!curCancelled) {
-                    curCancelled = true;
-                    showHint("可操控半屏暂不支持多指操作");
-                }
+                startStroke(g, ev, ev.getActionIndex());
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                endStroke(g, ev, ev.getActionIndex());
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (curStroke != null && !curCancelled) {
-                    if (curStroke.isTap && (Math.abs(ev.getX() - downX) > touchSlop || Math.abs(ev.getY() - downY) > touchSlop)) {
-                        curStroke.isTap = false;
+                for (int k = 0; k < ev.getPointerCount(); k++) {
+                    int id = ev.getPointerId(k);
+                    Stroke st = liveStrokes.get(id);
+                    if (st == null) continue;
+                    float[] d0 = downPos.get(id);
+                    if (st.isTap && d0 != null && (Math.abs(ev.getX(k) - d0[0]) > touchSlop || Math.abs(ev.getY(k) - d0[1]) > touchSlop)) {
+                        st.isTap = false;
                     }
-                    if (!curStroke.isTap) {
-                        Geo g = geo();
+                    if (!st.isTap) {
                         for (int h = 0; h < ev.getHistorySize(); h++) {
-                            addPoint(g, ev.getHistoricalX(0, h), ev.getHistoricalY(0, h), ev.getHistoricalEventTime(h));
+                            addPoint(g, st, ev.getHistoricalX(k, h), ev.getHistoricalY(k, h), ev.getHistoricalEventTime(h));
                         }
-                        addPoint(g, ev.getX(0), ev.getY(0), ev.getEventTime());
+                        addPoint(g, st, ev.getX(k), ev.getY(k), ev.getEventTime());
                     }
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                if (curStroke != null && !curCancelled) {
-                    Geo g = geo();
-                    if (curStroke.isTap) {
-                        double[] p0 = curStroke.pts.get(0);
-                        curStroke.pts.add(new double[]{p0[0], p0[1], ev.getEventTime()});
-                    } else {
-                        addPoint(g, ev.getX(), ev.getY(), ev.getEventTime());
-                    }
-                    batch.add(curStroke);
-                }
-                curStroke = null;
+                endStroke(g, ev, ev.getActionIndex());
+                liveStrokes.clear();
                 touchMode = T_NONE;
                 if (!batch.isEmpty()) postDelayed(flushBatch, BATCH_QUIET_MS);
                 break;
             case MotionEvent.ACTION_CANCEL:
-                curStroke = null;
+                liveStrokes.clear();
                 touchMode = T_NONE;
                 if (!batch.isEmpty()) postDelayed(flushBatch, BATCH_QUIET_MS);
                 break;
@@ -521,10 +569,10 @@ public class SplitView extends View {
         }
     }
 
-    private void addPoint(Geo g, float vx, float vy, long t) {
+    private void addPoint(Geo g, Stroke st, float vx, float vy, long t) {
         float[] l = toLogical(g.rot, vx, vy);
         float[] p = toScreen(g, l[0], l[1], true);
-        if (p != null) curStroke.pts.add(new double[]{p[0], p[1], t});
+        if (p != null) st.pts.add(new double[]{p[0], p[1], t});
     }
 
     private void flushBatch() {

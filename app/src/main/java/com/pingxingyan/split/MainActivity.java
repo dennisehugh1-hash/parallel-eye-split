@@ -22,6 +22,7 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
     private static final int REQ_CAPTURE = 100;
     private static final int REQ_NOTIF = 101;
+    public static final String EXTRA_AUTOSTART = "autostart";
 
     private SharedPreferences prefs;
     private TextView status, stCapture, stOverlay, stNotif, stShizuku, comboHint, methodHelp, methodStatus, statusDetail, qualityHint, fitHint, orientHint, modeHint, lblSep, lblSize, lblOffset, lblInterval;
@@ -45,6 +46,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        CrashLog.install(this);
         setContentView(R.layout.activity_main);
         prefs = Prefs.get(this);
 
@@ -105,13 +107,13 @@ public class MainActivity extends Activity {
         });
         methodGroup.setOnCheckedChangeListener((g, id) -> {
             if (updatingUi) return;
-            ShizukuHelper h = ShizukuHelper.get(this);
+            ShizukuHelper h = id == R.id.methodShizuku ? ShizukuHelper.get(this) : ShizukuHelper.peek();
             if (id == R.id.methodOff) {
                 prefs.edit().putInt(Prefs.K_CONTROL_PANE, Prefs.CONTROL_OFF).putBoolean(Prefs.K_REALTIME, false).apply();
-                h.unbind();
+                if (h != null) h.unbind();
             } else if (id == R.id.methodA11y) {
                 prefs.edit().putInt(Prefs.K_CONTROL_PANE, Prefs.controlSide(prefs)).putBoolean(Prefs.K_REALTIME, false).apply();
-                h.unbind();
+                if (h != null) h.unbind();
                 if (!GestureService.isRunning()) Toast.makeText(this, "还需开启无障碍服务“平行眼分屏·可操控半屏”", Toast.LENGTH_LONG).show();
             } else {
                 prefs.edit().putInt(Prefs.K_CONTROL_PANE, Prefs.controlSide(prefs)).putBoolean(Prefs.K_REALTIME, true).apply();
@@ -228,6 +230,15 @@ public class MainActivity extends Activity {
             if (!ProjectionService.splitOnPublic) moveTaskToBack(true);
         });
         findViewById(R.id.btnReset).setOnClickListener(v -> Prefs.reset(prefs));
+        findViewById(R.id.btnRestart).setOnClickListener(v -> {
+            // 整屏捕获需要新的录屏授权：停止后重新开始
+            if (ProjectionService.running) {
+                startService(new Intent(this, ProjectionService.class).setAction(ProjectionService.ACTION_STOP));
+            }
+            status.postDelayed(this::startFlow, 400);
+        });
+        findViewById(R.id.btnClearCrash).setOnClickListener(v -> prefs.edit().remove(CrashLog.K_LAST).apply());
+        handleAutostart(getIntent());
 
         DisplayMetrics dm = getResources().getDisplayMetrics();
         ((TextView) findViewById(R.id.help)).setText(
@@ -239,10 +250,27 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleAutostart(intent);
+    }
+
+    private void handleAutostart(Intent i) {
+        if (i != null && i.getBooleanExtra(EXTRA_AUTOSTART, false)) {
+            i.removeExtra(EXTRA_AUTOSTART);
+            status.post(this::startFlow);
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        // 设置页在前台时先收起分屏层（否则分屏层盖住设置页无法操作）；录屏和悬浮按钮继续运行，设置实时生效
+        if (ProjectionService.running && ProjectionService.splitOnPublic) {
+            startService(new Intent(this, ProjectionService.class).setAction(ProjectionService.ACTION_HIDE));
+        }
         prefs.registerOnSharedPreferenceChangeListener(prefListener);
-        ShizukuHelper.get(this).addListener(shizukuListener);
+        if (Prefs.realtime(prefs)) ShizukuHelper.get(this).addListener(shizukuListener);
         loadUi();
         refreshStatus();
     }
@@ -251,7 +279,8 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         prefs.unregisterOnSharedPreferenceChangeListener(prefListener);
-        ShizukuHelper.get(this).removeListener(shizukuListener);
+        ShizukuHelper shp = ShizukuHelper.peek();
+        if (shp != null) shp.removeListener(shizukuListener);
     }
 
     private void loadUi() {
@@ -289,7 +318,14 @@ public class MainActivity extends Activity {
         boolean full = Prefs.fullCapture(prefs);
         swFull.setChecked(full);
         int sk = ProjectionService.skipStatus;
-        fullHint.setText(!full ? "关：每次开始时由系统询问，推荐选“单个应用”（不会套娃）。"
+        boolean needRestart = ProjectionService.running && !ProjectionService.projectionLost && ProjectionService.startedFull != full;
+        findViewById(R.id.btnRestart).setVisibility(needRestart ? View.VISIBLE : View.GONE);
+        String crash = prefs.getString(CrashLog.K_LAST, null);
+        TextView ci = findViewById(R.id.crashInfo);
+        ci.setVisibility(crash != null ? View.VISIBLE : View.GONE);
+        findViewById(R.id.btnClearCrash).setVisibility(crash != null ? View.VISIBLE : View.GONE);
+        if (crash != null) ci.setText("最近一次异常（可长按复制发给开发者）：\n" + crash);
+        fullHint.setText(needRestart ? "整屏捕获需要重新授权录屏才能生效：" : !full ? "关：每次开始时由系统询问，推荐选“单个应用”（不会套娃）。"
                 : !SkipCapture.supported() ? "开：始终录整个屏幕；本机低于 Android 12，无法排除分屏层，会自动用间歇刷新。"
                 : sk == SkipCapture.R_FAIL ? "开：分屏层排除失败，已自动用间歇刷新。"
                 : "开：始终录整个屏幕并尝试把分屏层排除出画面；若出现套娃请改用间歇刷新。");
@@ -317,7 +353,7 @@ public class MainActivity extends Activity {
         boolean overlay = Settings.canDrawOverlays(this);
         boolean notif = Build.VERSION.SDK_INT < 33
                 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
-        status.setText(ProjectionService.running ? (ProjectionService.splitOnPublic ? "● 分屏中" : "● 运行中") : "○ 未运行");
+        status.setText(ProjectionService.running ? (ProjectionService.projectionLost ? "○ 录屏已结束" : ProjectionService.splitOnPublic ? "● 分屏中" : "● 运行中") : "○ 未运行");
         statusDetail.setText(!overlay ? "先授予悬浮窗权限，再点“开始”。"
                 : ProjectionService.running ? (ProjectionService.splitOnPublic ? "分屏已开启，点悬浮按钮关闭。" : "录屏中，点悬浮按钮“分屏”开启。")
                 : "点“开始”并允许录屏。");
@@ -327,9 +363,11 @@ public class MainActivity extends Activity {
         btnOverlay.setVisibility(overlay ? View.GONE : View.VISIBLE);
         ((View) stNotif.getParent()).setVisibility(Build.VERSION.SDK_INT >= 33 ? View.VISIBLE : View.GONE);
         setSt(stNotif, notif ? 2 : 1, notif ? "通知：已允许" : "通知：未允许（可选）");
-        ShizukuHelper sh = ShizukuHelper.get(this);
-        int ss = sh.state();
         boolean rt = Prefs.realtime(prefs);
+        // 未选择 Shizuku 实时：不初始化、不探测 Shizuku
+        ShizukuHelper sh = rt ? ShizukuHelper.get(this) : null;
+        if (sh != null) sh.addListener(shizukuListener);
+        int ss = sh != null ? sh.state() : ShizukuHelper.ST_NOT_RUNNING;
         String sText;
         int sLevel;
         switch (ss) {
@@ -339,9 +377,10 @@ public class MainActivity extends Activity {
             case ShizukuHelper.ST_OLD: sText = "Shizuku：版本过旧，请更新"; sLevel = 0; break;
             default: sText = "Shizuku：未运行（仅实时操控需要）"; sLevel = rt ? 0 : 1; break;
         }
+        if (!rt) { sText = "Shizuku：未使用（选“Shizuku 实时”后检测）"; sLevel = 1; }
         setSt(stShizuku, sLevel, sText);
         btnShizuku.setText(ss == ShizukuHelper.ST_NOT_RUNNING || ss == ShizukuHelper.ST_OLD ? "打开" : "授权");
-        btnShizuku.setVisibility(ss == ShizukuHelper.ST_READY || ss == ShizukuHelper.ST_BINDING ? View.GONE : View.VISIBLE);
+        btnShizuku.setVisibility(!rt || ss == ShizukuHelper.ST_READY || ss == ShizukuHelper.ST_BINDING ? View.GONE : View.VISIBLE);
         if (rt && ss == ShizukuHelper.ST_BINDING) sh.ensureBound();
         boolean a11yOn = GestureService.isRunning();
         boolean a11ySet = GestureService.isEnabledInSettings(this);
@@ -354,10 +393,10 @@ public class MainActivity extends Activity {
             methodHelp.setText("触摸不会传给下面的应用。");
         } else if (!rt) {
             setSt(methodStatus, a11yOn ? 2 : 0, a11yOn ? "无障碍已开启，可用" : "无障碍未开启，点权限栏“去开启”");
-            methodHelp.setText("松手约 0.3 秒后代为执行，单指操作。");
+            methodHelp.setText("松手约 0.3 秒后代为执行，支持多指（如双指缩放）。");
         } else if (ss == ShizukuHelper.ST_READY) {
             setSt(methodStatus, 2, "Shizuku 已就绪，实时操控");
-            methodHelp.setText("触摸实时传给应用，按住时画面略变淡，单指操作。");
+            methodHelp.setText("触摸实时传给应用，支持最多 5 指，按住时画面略变淡。");
         } else {
             String why = ss == ShizukuHelper.ST_NOT_RUNNING ? "Shizuku 未运行" : ss == ShizukuHelper.ST_NO_PERMISSION ? "Shizuku 未授权"
                     : ss == ShizukuHelper.ST_OLD ? "Shizuku 版本过旧" : "正在连接 Shizuku";
