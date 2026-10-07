@@ -87,6 +87,8 @@ public final class Prefs {
         int q = quality(p);
         return q == Q_SAVER ? 30 : q == Q_STD ? 60 : 0;
     }
+    public static final String K_SKIP = "skip_capture";   // 录屏排除分屏层（实验），默认关
+    public static boolean skipCapture(SharedPreferences p) { return p.getBoolean(K_SKIP, false); }
     public static boolean gpu(SharedPreferences p) { return p.getBoolean(K_GPU, false); }
     public static boolean realtime(SharedPreferences p) { return p.getBoolean(K_REALTIME, false); }
     public static int controlSide(SharedPreferences p) {

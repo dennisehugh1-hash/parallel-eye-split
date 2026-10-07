@@ -68,6 +68,8 @@ public class SplitView extends View {
     private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Rect src = new Rect();
+    /** 仅用于 GPU 直接绘制的硬件位图；CPU 路径与 v1.5 完全一致（不加滤镜）。 */
+    private android.graphics.ColorFilter opaqueFilter;
     private final Paint fpsPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private int newFrames, drawCount;
     private long fpsT0;
@@ -107,7 +109,7 @@ public class SplitView extends View {
         setBackground(null);
         // 强制不透明：截屏缓冲的 alpha 通道并不可靠（输入法等图层所在区域 alpha 可能为 0），
         // 按原样绘制会让这些区域变成透明/黑色（v1.5 GPU 直接绘制时键盘“消失”的原因）
-        bmpPaint.setColorFilter(new android.graphics.ColorMatrixColorFilter(new float[]{
+        opaqueFilter = (new android.graphics.ColorMatrixColorFilter(new float[]{
                 1, 0, 0, 0, 0,
                 0, 1, 0, 0, 0,
                 0, 0, 1, 0, 0,
@@ -257,6 +259,7 @@ public class SplitView extends View {
             if (frame != null && !frame.isRecycled()) {
                 src.set(0, 0, frameW, frameH);
                 dst.set(cx - g.pw / 2f, g.cy - g.ph / 2f, cx + g.pw / 2f, g.cy + g.ph / 2f);
+                bmpPaint.setColorFilter(frame.getConfig() == Bitmap.Config.HARDWARE ? opaqueFilter : null);
                 canvas.drawBitmap(frame, src, dst, bmpPaint);
             } else {
                 canvas.drawText("正在获取画面…", cx, g.cy, textPaint);

@@ -494,6 +494,7 @@ public class ProjectionService extends Service {
     /** 实际使用的刷新方式：录整个屏幕但分屏层未能从录屏中排除时，强制间歇刷新，避免无限套娃。 */
     private int mode() {
         int m = Prefs.mode(prefs);
+        if (!skipEnabled()) return m; // 未开启实验功能：与 v1.5 行为一致
         if (m == Prefs.MODE_LIVE && capturingDisplay() && splitOn
                 && skipResult != SkipCapture.R_LOCAL && skipResult != SkipCapture.R_SHIZUKU) return Prefs.MODE_INTERVAL;
         return m;
@@ -507,8 +508,13 @@ public class ProjectionService extends Service {
 
     public static volatile int skipStatus = -1;
 
+    /** 仅在“强制整个屏幕”且用户开启了实验开关时使用。 */
+    private boolean skipEnabled() {
+        return Prefs.skipCapture(prefs) && Prefs.scope(prefs) == Prefs.SCOPE_DISPLAY && SkipCapture.supported();
+    }
+
     private void applySkip() {
-        if (splitView == null) return;
+        if (splitView == null || !skipEnabled()) { skipStatus = -1; return; }
         int r = SkipCapture.apply(splitView, ShizukuHelper.get(this));
         if (bubble != null) SkipCapture.apply(bubble, ShizukuHelper.get(this));
         boolean changed = r != skipResult;

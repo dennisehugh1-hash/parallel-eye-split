@@ -125,6 +125,8 @@
 <RadioButton android:id="@+id/scopeApp" style="@style/Seg" android:text="弹窗中选择" />
 </RadioGroup>
 <TextView android:id="@+id/scopeHint" style="@style/Hint" />
+<Switch android:id="@+id/swSkip" style="@style/PillSwitch" android:text="录屏排除分屏层（实验）" />
+<TextView android:id="@+id/skipHint" style="@style/Hint" />
 <View style="@style/Divider" />
 <TextView style="@style/Label" android:text="刷新方式（防止“画中画”无限套娃）" />
 <RadioGroup android:id="@+id/modeGroup" style="@style/SegGroup">

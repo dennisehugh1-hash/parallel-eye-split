@@ -30,7 +30,8 @@ public class MainActivity extends Activity {
     private android.widget.CompoundButton chkDots, swFps;
     private android.widget.Switch swGestures;
     private RadioGroup methodGroup, resGroup, fpsGroup, scopeGroup;
-    private TextView gpuHint;
+    private TextView gpuHint, skipHint;
+    private android.widget.CompoundButton swSkip;
     private android.widget.CompoundButton swGpu;
     private TextView scopeHint;
     private Button btnShizuku, btnA11yBtn, btnOverlay, btnStart2;
@@ -66,6 +67,13 @@ public class MainActivity extends Activity {
         fpsGroup = findViewById(R.id.fpsGroup);
         swGpu = findViewById(R.id.swGpu);
         gpuHint = findViewById(R.id.gpuHint);
+        swSkip = findViewById(R.id.swSkip);
+        skipHint = findViewById(R.id.skipHint);
+        swSkip.setOnCheckedChangeListener((b, c) -> {
+            if (updatingUi) return;
+            prefs.edit().putBoolean(Prefs.K_SKIP, c).apply();
+            if (ProjectionService.running) Toast.makeText(this, "下次开启分屏时生效", Toast.LENGTH_SHORT).show();
+        });
         resGroup.setOnCheckedChangeListener((g, id) -> {
             if (updatingUi) return;
             prefs.edit().putInt(Prefs.K_RES, id == R.id.res50 ? 50 : id == R.id.res75 ? 75 : 100).apply();
@@ -299,16 +307,22 @@ public class MainActivity extends Activity {
         swFps.setChecked(Prefs.showFps(prefs));
         boolean disp = Prefs.scope(prefs) == Prefs.SCOPE_DISPLAY;
         scopeGroup.check(disp ? R.id.scopeDisplay : R.id.scopeApp);
-        int sk = ProjectionService.skipStatus;
-        boolean bad = disp && Prefs.mode(prefs) == Prefs.MODE_LIVE && (!SkipCapture.supported() || sk == SkipCapture.R_FAIL);
+        boolean skOn = Prefs.skipCapture(prefs);
+        swSkip.setChecked(skOn);
+        swSkip.setEnabled(disp && SkipCapture.supported());
+        skipHint.setText(!SkipCapture.supported() ? "需要 Android 12 及以上。"
+                : !disp ? "仅在“强制整个屏幕”时可用。"
+                : "试图让分屏层不被录进去，从而“整个屏幕 + 实时”也不套娃。实验功能：部分机型开启后输入法会从分屏画面中消失，遇到请关闭。");
+        int sk = skOn ? ProjectionService.skipStatus : -1;
+        boolean bad = disp && Prefs.mode(prefs) == Prefs.MODE_LIVE && (!skOn || sk == SkipCapture.R_FAIL);
         scopeHint.setText((disp ? "录制整个屏幕：输入法（键盘）、通知、弹窗都会显示在分屏里。"
                 + (!SkipCapture.supported() ? "本机系统低于 Android 12，无法把分屏层排除出录屏，只能用“间歇刷新”。"
                 : sk == SkipCapture.R_LOCAL || sk == SkipCapture.R_SHIZUKU ? "已尝试把分屏层排除出录屏（防套娃" + (sk == SkipCapture.R_SHIZUKU ? "，经 Shizuku" : "") + "），可用实时。若仍套娃请改用间歇刷新。"
                 : sk == SkipCapture.R_FAIL ? "分屏层排除失败，自动改用间歇刷新。可开启 Shizuku 后重新开始再试。"
-                : "开启分屏时会尝试把分屏层排除出录屏（防套娃），成功即可用实时。")
+                : skOn ? "开启分屏时会尝试把分屏层排除出录屏。" : "分屏层会被录进去：请用“间歇刷新”，否则会套娃（或试用下面的实验开关）。")
                 : "由系统录屏弹窗决定（默认，与 v1.5 相同）：选“单个应用”可稳定实时，但 Android 14+ 上输入法键盘和系统弹窗不属于该应用，可能不出现在分屏里；选“整个屏幕”则同下方说明。")
                 + (Build.VERSION.SDK_INT < 34 ? "（本机 Android 版本的录屏弹窗总是录整个屏幕）" : "")
-                + (bad ? "\n⚠ 防套娃不可用：整个屏幕下会自动使用间歇刷新。" : ""));
+                + (bad ? (skOn ? "\n⚠ 排除失败：已自动使用间歇刷新。" : "\n⚠ 整个屏幕 + 实时会套娃，请改为间歇刷新。") : ""));
         scopeHint.setTextColor(getColor(bad ? R.color.bad : R.color.text2));
         fitHint.setText(Prefs.fitMode(prefs) == Prefs.FIT_CONTAIN ? "等比完整显示，可能留黑边。" : "裁切边缘，铺满半屏。");
         orientHint.setText(Prefs.splitOrient(prefs) == Prefs.ORIENT_FOLLOW ? "分屏画面与系统方向一致。" : "应用保持竖屏，分屏画面横着显示，横拿手机观看。");
