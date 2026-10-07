@@ -29,11 +29,10 @@ public class MainActivity extends Activity {
     private RadioGroup modeGroup, controlGroup, fitGroup, orientGroup, dirGroup;
     private android.widget.CompoundButton chkDots, swFps;
     private android.widget.Switch swGestures;
-    private RadioGroup methodGroup, resGroup, fpsGroup, scopeGroup;
-    private TextView gpuHint, skipHint;
-    private android.widget.CompoundButton swSkip;
+    private RadioGroup methodGroup, resGroup, fpsGroup;
+    private TextView gpuHint, fullHint;
+    private android.widget.CompoundButton swFull;
     private android.widget.CompoundButton swGpu;
-    private TextView scopeHint;
     private Button btnShizuku, btnA11yBtn, btnOverlay, btnStart2;
     private final Runnable shizukuListener = this::refreshStatus;
     private TextView a11yStatus;
@@ -67,13 +66,16 @@ public class MainActivity extends Activity {
         fpsGroup = findViewById(R.id.fpsGroup);
         swGpu = findViewById(R.id.swGpu);
         gpuHint = findViewById(R.id.gpuHint);
-        swSkip = findViewById(R.id.swSkip);
-        skipHint = findViewById(R.id.skipHint);
-        swSkip.setOnCheckedChangeListener((b, c) -> {
+        swFull = findViewById(R.id.swFull);
+        fullHint = findViewById(R.id.fullHint);
+        swFull.setOnCheckedChangeListener((b, c) -> {
             if (updatingUi) return;
-            prefs.edit().putBoolean(Prefs.K_SKIP, c).apply();
-            if (ProjectionService.running) Toast.makeText(this, "下次开启分屏时生效", Toast.LENGTH_SHORT).show();
+            prefs.edit().putBoolean(Prefs.K_FULL, c).apply();
+            if (ProjectionService.running) Toast.makeText(this, "下次点“开始”时生效", Toast.LENGTH_SHORT).show();
         });
+        ((TextView) findViewById(R.id.protectTip)).setText(Build.VERSION.SDK_INT >= 34
+                ? "提示：Android 14+ 录屏共享可能被系统保护，隐藏键盘、通知等内容。Android 15 可在开发者选项中尝试打开“停用屏幕共享保护”（Disable screen share protections）。"
+                : "提示：部分应用禁止录屏，分屏中会显示黑色。");
         resGroup.setOnCheckedChangeListener((g, id) -> {
             if (updatingUi) return;
             prefs.edit().putInt(Prefs.K_RES, id == R.id.res50 ? 50 : id == R.id.res75 ? 75 : 100).apply();
@@ -82,21 +84,9 @@ public class MainActivity extends Activity {
             if (updatingUi) return;
             prefs.edit().putInt(Prefs.K_FPS, id == R.id.fps30 ? 30 : id == R.id.fps60 ? 60 : 0).apply();
         });
-        android.widget.CompoundButton swHr = findViewById(R.id.swHighRefresh);
-        swHr.setChecked(Prefs.highRefresh(prefs));
-        swHr.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean(Prefs.K_HIGH_REFRESH, c).apply());
         swGpu.setOnCheckedChangeListener((b, c) -> {
             if (updatingUi) return;
             prefs.edit().putBoolean(Prefs.K_GPU, c).apply();
-        });
-        scopeGroup = findViewById(R.id.scopeGroup);
-        scopeHint = findViewById(R.id.scopeHint);
-        scopeGroup.setOnCheckedChangeListener((g, id) -> {
-            if (updatingUi) return;
-            boolean disp = id == R.id.scopeDisplay;
-            // 整个屏幕会把分屏层自己录进去：必须用间歇刷新；单个应用可用实时
-            prefs.edit().putInt(Prefs.K_SCOPE, disp ? Prefs.SCOPE_DISPLAY : Prefs.SCOPE_APP).apply();
-            if (ProjectionService.running) Toast.makeText(this, "捕获范围在下次点“开始”时生效", Toast.LENGTH_LONG).show();
         });
         swFps = findViewById(R.id.swFps);
         swGestures = findViewById(R.id.swGestures);
@@ -241,20 +231,11 @@ public class MainActivity extends Activity {
 
         DisplayMetrics dm = getResources().getDisplayMetrics();
         ((TextView) findViewById(R.id.help)).setText(
-                "使用说明\n"
-                + "1. 先授予“显示在其他应用上层”（悬浮窗）权限；Android 13 及以上建议允许通知（用于显示“停止”按钮）。\n"
-                + "2. 点“开始”，在系统录屏弹窗中确认。Android 14 及以上每次开始都需要重新确认。\n"
-                + "   · 录屏弹窗选“整个屏幕”（或设置里“捕获范围”选“始终整个屏幕”）：输入法、弹窗都能看到，防套娃生效时可用实时。\n"
-                + "   · 选“单个应用”：画面干净，不会套娃，可用实时高帧率。\n"
-                + "3. 点屏幕上的悬浮按钮“分屏”开启；再点“关闭”（或在开启快捷手势时双击分屏画面）关闭。长按悬浮按钮打开本设置页。悬浮按钮可拖动。\n"
-                + "4. 默认“强制横屏”：下面的应用（如抖音）保持竖屏不变，分屏画面横着显示——把手机横过来拿，就能看到左右两个竖着的画面。"
-                + "横拿方向默认按重力感应自动判断，也可在“横屏方向”里固定为向左或向右。选“跟随系统方向”则分屏画面与系统方向一致。\n"
-                + "5. 观看方法（平行眼）：放松双眼看向远处，让两个红点重合成三个点中的中间一个，即可看到融合后的画面。\n\n"
-                + "注意事项\n"
-                + "· 分屏开启时画面覆盖整个屏幕，无法直接操作下面的应用；可先关闭分屏，或使用“交互操控”里的“可操控半屏”。\n"
-                + "· 部分应用（银行、视频会员等）禁止录屏，画面会是黑色。\n"
-                + "· 间歇刷新模式下每次取画面时会短暂露出底层应用（轻微闪烁）。\n"
-                + String.format(java.util.Locale.ROOT, "· 本机屏幕物理密度约 %.0f×%.0f dpi，毫米换算据此计算，若厂商数据不准，实际距离可能有偏差。", dm.xdpi, dm.ydpi));
+                "1. 授予悬浮窗权限，点“开始”，录屏弹窗推荐选“单个应用”。\n"
+                + "2. 点悬浮按钮“分屏”开关；长按打开设置；可拖动。\n"
+                + "3. 横拿手机，放松双眼看远处，让两个红点重合成中间一个。\n"
+                + "4. 部分应用禁止录屏，画面会是黑色。\n"
+                + String.format(java.util.Locale.ROOT, "本机屏幕约 %.0f×%.0f dpi（毫米换算依据）。", dm.xdpi, dm.ydpi));
     }
 
     @Override
@@ -300,49 +281,34 @@ public class MainActivity extends Activity {
         int rp = Prefs.resPct(prefs), fc = Prefs.fpsCap(prefs);
         resGroup.check(rp == 50 ? R.id.res50 : rp == 75 ? R.id.res75 : R.id.res100);
         fpsGroup.check(fc == 30 ? R.id.fps30 : fc == 60 ? R.id.fps60 : R.id.fpsFollow);
-        qualityHint.setText((rp == 100 ? "原生分辨率，最清晰。⚠ 实测 100% 时输入法键盘可能不显示，需要键盘请用 75%。" : rp == 75 ? "75% 分辨率，清晰度与耗电平衡。" : "50% 分辨率，最省电（v1.4 及以前的画质）。")
-                + (fc == 0 ? "帧率跟随屏幕刷新率（60/90/120Hz）。" : "帧率最高约 " + fc + " 帧。"));
+        qualityHint.setText(fc == 0 ? "跟随屏幕：按屏幕最高刷新率（90/120Hz）显示，更耗电。" : "分辨率越高越清晰，帧率越高越流畅，也越耗电。");
         swGpu.setChecked(Prefs.gpu(prefs));
         swGpu.setEnabled(Build.VERSION.SDK_INT >= 29);
-        gpuHint.setText(Build.VERSION.SDK_INT < 29 ? "需要 Android 10 及以上。"
-                : "开启（默认，与 v1.5 相同）：画面直接交给 GPU 绘制，帧率更高、更省电，输入法可正常显示。"
-                + "关闭：改用 CPU 拷贝画面——实测此方式下输入法键盘不会出现在分屏里，仅在画面异常时作为备用。");
+        gpuHint.setText(Build.VERSION.SDK_INT < 29 ? "需要 Android 10 及以上。" : "推荐开启：GPU 直接绘制，更流畅省电；画面异常时再关闭。");
         swFps.setChecked(Prefs.showFps(prefs));
-        boolean disp = Prefs.scope(prefs) == Prefs.SCOPE_DISPLAY;
-        scopeGroup.check(disp ? R.id.scopeDisplay : R.id.scopeApp);
-        boolean skOn = Prefs.skipCapture(prefs);
-        swSkip.setChecked(skOn);
-        swSkip.setEnabled(disp && SkipCapture.supported());
-        skipHint.setText(!SkipCapture.supported() ? "需要 Android 12 及以上。"
-                : !disp ? "仅在“始终整个屏幕”时可用。"
-                : "试图让分屏层不被录进去，从而“整个屏幕 + 实时”也不套娃。实验功能：部分机型开启后输入法会从分屏画面中消失，遇到请关闭。");
-        int sk = skOn ? ProjectionService.skipStatus : -1;
-        boolean bad = disp && Prefs.mode(prefs) == Prefs.MODE_LIVE && (!skOn || sk == SkipCapture.R_FAIL);
-        scopeHint.setText((disp ? "录屏弹窗不再提供“单个应用”选项，始终录整个屏幕（Android 14+；更早的系统本来就只能录整个屏幕）。分屏层自己也会被录进去，可能出现套娃，除非“录屏排除分屏层”生效或使用“间歇刷新”。"
-                + (!SkipCapture.supported() ? "本机系统低于 Android 12，无法把分屏层排除出录屏，只能用“间歇刷新”。"
-                : sk == SkipCapture.R_LOCAL || sk == SkipCapture.R_SHIZUKU ? "已尝试把分屏层排除出录屏（防套娃" + (sk == SkipCapture.R_SHIZUKU ? "，经 Shizuku" : "") + "），可用实时。若仍套娃请改用间歇刷新。"
-                : sk == SkipCapture.R_FAIL ? "分屏层排除失败，自动改用间歇刷新。可开启 Shizuku 后重新开始再试。"
-                : skOn ? "开启分屏时会尝试把分屏层排除出录屏。" : "分屏层会被录进去：请用“间歇刷新”，否则会套娃（或试用下面的实验开关）。")
-                : "每次开始时由系统录屏弹窗询问（默认，与 v1.5 相同）：可选“单个应用”（画面干净，不会套娃，可用实时）或“整个屏幕”。")
-                + (Build.VERSION.SDK_INT < 34 ? "（本机 Android 版本的录屏弹窗总是录整个屏幕）" : "")
-                + (bad ? (skOn ? "\n⚠ 排除失败：已自动使用间歇刷新。" : "\n⚠ 整个屏幕 + 实时会套娃，请改为间歇刷新。") : ""));
-        scopeHint.setTextColor(getColor(bad ? R.color.bad : R.color.text2));
-        fitHint.setText(Prefs.fitMode(prefs) == Prefs.FIT_CONTAIN ? "等比完整显示，可能留黑边。" : "裁切边缘，铺满半屏。");
-        orientHint.setText(Prefs.splitOrient(prefs) == Prefs.ORIENT_FOLLOW ? "分屏画面与系统方向一致。" : "应用保持竖屏，分屏画面横着显示，横拿手机观看。");
-        modeHint.setText(Prefs.mode(prefs) == Prefs.MODE_LIVE ? "持续刷新。录整个屏幕时需防套娃生效，否则自动改为间歇刷新。" : "每次刷新会短暂隐藏分屏层抓取画面，轻微闪烁。");
+        boolean full = Prefs.fullCapture(prefs);
+        swFull.setChecked(full);
+        int sk = ProjectionService.skipStatus;
+        fullHint.setText(!full ? "关：每次开始时由系统询问，推荐选“单个应用”（不会套娃）。"
+                : !SkipCapture.supported() ? "开：始终录整个屏幕；本机低于 Android 12，无法排除分屏层，会自动用间歇刷新。"
+                : sk == SkipCapture.R_FAIL ? "开：分屏层排除失败，已自动用间歇刷新。"
+                : "开：始终录整个屏幕并尝试把分屏层排除出画面；若出现套娃请改用间歇刷新。");
+        fitHint.setText(Prefs.fitMode(prefs) == Prefs.FIT_CONTAIN ? "等比显示，可能留黑边。" : "裁切边缘，铺满半屏。");
+        orientHint.setText(Prefs.splitOrient(prefs) == Prefs.ORIENT_FOLLOW ? "与系统方向一致。" : "应用保持竖屏，横拿手机观看。");
+        modeHint.setText(Prefs.mode(prefs) == Prefs.MODE_LIVE ? "持续刷新，最流畅。" : "定时刷新，会轻微闪烁；整屏捕获套娃时使用。");
         controlGroup.check(Prefs.controlSide(prefs) == Prefs.CONTROL_LEFT ? R.id.controlLeft : R.id.controlRight);
         for (int i = 0; i < controlGroup.getChildCount(); i++) controlGroup.getChildAt(i).setEnabled(cOn);
         String side = Prefs.controlSide(prefs) == Prefs.CONTROL_LEFT ? "左" : "右";
         String other = Prefs.controlSide(prefs) == Prefs.CONTROL_LEFT ? "右" : "左";
-        comboHint.setText("当前模式：" + (!gOn && !cOn ? "分屏画面不响应触摸，只能用悬浮按钮开关分屏"
-                : gOn && !cOn ? "整个分屏画面都可用快捷手势"
-                : gOn ? side + "半屏操控下面的应用，" + other + "半屏用快捷手势"
-                : "只有" + side + "半屏可操控下面的应用，" + other + "半屏不响应触摸；用悬浮按钮关闭分屏"));
+        comboHint.setText("当前：" + (!gOn && !cOn ? "画面不响应触摸，用悬浮按钮开关"
+                : gOn && !cOn ? "全屏快捷手势"
+                : gOn ? side + "半屏操控应用，" + other + "半屏快捷手势"
+                : "仅" + side + "半屏操控应用，" + other + "半屏不响应"));
         float pxmm = Prefs.pxPerMm(getResources().getDisplayMetrics());
-        lblSep.setText(String.format(java.util.Locale.ROOT, "两点间距（两个画面中心距离）：%.1f 毫米（约 %d 像素）", sep, Math.round(sep * pxmm)));
-        lblSize.setText("画面缩放（在“画面适配”基础上额外放大/缩小）：" + size + "%");
-        lblOffset.setText(String.format(java.util.Locale.ROOT, "垂直偏移：%+.1f 毫米（正数向下）", off));
-        lblInterval.setText(String.format(java.util.Locale.ROOT, "间歇刷新间隔：%.1f 秒", iv / 1000f));
+        lblSep.setText(String.format(java.util.Locale.ROOT, "两点间距：%.1f 毫米（约 %d 像素）", sep, Math.round(sep * pxmm)));
+        lblSize.setText("画面缩放：" + size + "%");
+        lblOffset.setText(String.format(java.util.Locale.ROOT, "垂直偏移：%+.1f 毫米", off));
+        lblInterval.setText(String.format(java.util.Locale.ROOT, "刷新间隔：%.1f 秒", iv / 1000f));
         seekInterval.setEnabled(Prefs.mode(prefs) == Prefs.MODE_INTERVAL);
         updatingUi = false;
     }
@@ -352,9 +318,9 @@ public class MainActivity extends Activity {
         boolean notif = Build.VERSION.SDK_INT < 33
                 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
         status.setText(ProjectionService.running ? (ProjectionService.splitOnPublic ? "● 分屏中" : "● 运行中") : "○ 未运行");
-        statusDetail.setText(!overlay ? "请先在下方授予悬浮窗权限，然后点“开始”。"
-                : ProjectionService.running ? (ProjectionService.splitOnPublic ? "分屏已开启。点悬浮按钮或“开 / 关分屏”关闭。" : "正在录屏。点屏幕上的悬浮按钮“分屏”开启平行眼画面。")
-                : "点“开始”并在系统弹窗中允许录屏。");
+        statusDetail.setText(!overlay ? "先授予悬浮窗权限，再点“开始”。"
+                : ProjectionService.running ? (ProjectionService.splitOnPublic ? "分屏已开启，点悬浮按钮关闭。" : "录屏中，点悬浮按钮“分屏”开启。")
+                : "点“开始”并允许录屏。");
         setSt(stCapture, ProjectionService.running ? 2 : 1, ProjectionService.running ? "录屏：已授权（运行中）" : "录屏：每次点“开始”时确认");
         btnStart2.setVisibility(ProjectionService.running ? View.GONE : View.VISIBLE);
         setSt(stOverlay, overlay ? 2 : 0, overlay ? "悬浮窗：已授予" : "悬浮窗：未授予（必需）");
@@ -385,18 +351,18 @@ public class MainActivity extends Activity {
         boolean cOn = Prefs.controlPane(prefs) != Prefs.CONTROL_OFF;
         if (!cOn) {
             setSt(methodStatus, 1, "可操控半屏已关闭");
-            methodHelp.setText("分屏画面不会把触摸传给下面的应用。");
+            methodHelp.setText("触摸不会传给下面的应用。");
         } else if (!rt) {
-            setSt(methodStatus, a11yOn ? 2 : 0, a11yOn ? "无障碍服务已开启，可以使用" : "无障碍服务未开启，暂不可用——点上方“去开启”");
-            methodHelp.setText("在可操控半屏上点按、长按或滑动，松手约 0.3 秒后在真实屏幕上代为执行一遍。有延迟，不支持多指。");
+            setSt(methodStatus, a11yOn ? 2 : 0, a11yOn ? "无障碍已开启，可用" : "无障碍未开启，点权限栏“去开启”");
+            methodHelp.setText("松手约 0.3 秒后代为执行，单指操作。");
         } else if (ss == ShizukuHelper.ST_READY) {
-            setSt(methodStatus, 2, "Shizuku 已就绪：实时操控生效中");
-            methodHelp.setText("手指按下即实时传给下面的应用，移动、拖动同步响应。按住期间画面会稍微变淡（系统允许触摸穿透的要求）。不支持多指。");
+            setSt(methodStatus, 2, "Shizuku 已就绪，实时操控");
+            methodHelp.setText("触摸实时传给应用，按住时画面略变淡，单指操作。");
         } else {
             String why = ss == ShizukuHelper.ST_NOT_RUNNING ? "Shizuku 未运行" : ss == ShizukuHelper.ST_NO_PERMISSION ? "Shizuku 未授权"
                     : ss == ShizukuHelper.ST_OLD ? "Shizuku 版本过旧" : "正在连接 Shizuku";
-            setSt(methodStatus, 0, "⚠ " + why + " → 临时改用无障碍回放" + (a11yOn ? "" : "（无障碍也未开启，当前无法操控）"));
-            methodHelp.setText("Shizuku 就绪后自动切换为实时操控。请打开 Shizuku 启动服务，并在权限栏点“授权”。");
+            setSt(methodStatus, 0, "⚠ " + why + "，暂用无障碍回放" + (a11yOn ? "" : "（无障碍也未开启）"));
+            methodHelp.setText("启动 Shizuku 并在权限栏点“授权”后自动切换。");
         }
         btnNotif.setVisibility(Build.VERSION.SDK_INT >= 33 && !notif ? View.VISIBLE : View.GONE);
     }
@@ -494,25 +460,10 @@ public class MainActivity extends Activity {
     }
 
     static final String GESTURE_HELP =
-            "分屏画面上的手势（分屏开启时直接在画面上操作；方向均以你横拿手机时看到的画面为准）：\n"
-            + "· 单指左右滑动：调节两点间距（向右变大，向左变小）\n"
-            + "· 单指上下滑动：整体上下移动画面和红点（垂直偏移）\n"
-            + "· 双指捏合 / 张开：缩小 / 放大画面（在“画面适配”基础上 30%～200%，超出部分在各自半屏内裁掉）\n"
-            + "· 单指双击：关闭分屏（关闭快捷手势后只能用悬浮按钮关闭）\n"
-            + "· 悬浮按钮：单击开启 / 关闭分屏；长按关闭分屏并打开本设置页；按住拖动可移动位置\n"
-            + "· 开启“可操控半屏”后：可操控那一半上的单指点按、长按、滑动会传给下面的应用，不会调节参数；"
-            + "以上调节手势（含双击关闭）只在另一半上有效";
+            "左右滑调间距 · 上下滑调偏移 · 双指缩放 · 双击关闭";
 
     static final String CONTROL_HELP =
-            "无障碍回放说明：在选定的半屏画面上用单指点按、长按或滑动，手指抬起约 0.3 秒后，会在真实屏幕的对应位置代为执行一遍"
-            + "（有延迟，拖动越久延迟越长）。执行期间分屏画面会变淡一下，请不要触摸屏幕，否则会中断。不支持双指操作。\n"
-            + "开启方法：点“开启无障碍服务”，在列表中找到“平行眼分屏·可操控半屏”并打开。"
-            + "如果开关是灰色、提示“受限制的设置”（Android 13 起安装包安装的应用常见），"
-            + "请点“应用信息”，点右上角 ⋮ 菜单，选“允许受限制的设置”，再回到无障碍设置开启。"
-            + "部分国产系统还需在“权限管理 / 自启动 / 省电策略”中允许本应用，否则无障碍服务可能被自动关闭。\n\n"
-            + "Shizuku 实时操控：安装并启动 Shizuku（无线调试或 root 方式），打开上面的“实时操控”开关并在弹窗中点“允许”。"
-            + "就绪后手指按下即实时传给下面的应用（无需无障碍服务）；Shizuku 停止（如重启手机后）会自动退回无障碍回放。"
-            + "按住期间分屏画面会稍微变淡，这是系统允许触摸穿透的要求。";
+            "无障碍开关灰色时：应用信息 → 右上角 ⋮ → 允许受限制的设置。Shizuku 需先在其应用内启动（无线调试或 root）。";
 
     private abstract static class SimpleSeek implements SeekBar.OnSeekBarChangeListener {
         abstract void changed(int v);

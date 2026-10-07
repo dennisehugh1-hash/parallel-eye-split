@@ -41,7 +41,7 @@
 </LinearLayout>
 </LinearLayout>
 <LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="显示" />
+<TextView style="@style/CardTitle" android:text="画面" />
 <TextView style="@style/Label" android:text="分辨率" />
 <RadioGroup android:id="@+id/resGroup" style="@style/SegGroup">
 <RadioButton android:id="@+id/res100" style="@style/Seg" android:text="100%" />
@@ -57,8 +57,6 @@
 <TextView android:id="@+id/qualityHint" style="@style/Hint" />
 <Switch android:id="@+id/swGpu" style="@style/PillSwitch" android:text="GPU 直接绘制" />
 <TextView android:id="@+id/gpuHint" style="@style/Hint" />
-<Switch android:id="@+id/swHighRefresh" style="@style/PillSwitch" android:text="申请高刷新率" />
-<TextView style="@style/Hint" android:text="让屏幕在分屏时切到最高刷新率（90/120Hz）。⚠ 部分机型切换刷新率时会收起输入法键盘，需要打字时请保持关闭。下次开启分屏时生效。" />
 <View style="@style/Divider" />
 <TextView style="@style/Label" android:text="@string/fit_title" />
 <RadioGroup android:id="@+id/fitGroup" style="@style/SegGroup">
@@ -68,7 +66,6 @@
 <TextView style="@style/Hint" android:id="@+id/fitHint" />
 <View style="@style/Divider" />
 <Switch android:id="@+id/chkDots" style="@style/PillSwitch" android:text="显示对焦红圈" />
-<Switch android:id="@+id/swFps" style="@style/PillSwitch" android:text="显示帧率（调试用）" />
 <View style="@style/Divider" />
 <TextView android:id="@+id/lblSize" style="@style/Label" />
 <SeekBar android:id="@+id/seekSize" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
@@ -120,17 +117,11 @@
 <TextView style="@style/Hint" android:id="@+id/controlHelp" />
 </LinearLayout>
 <LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="刷新" />
-<TextView style="@style/Label" android:text="捕获范围" />
-<RadioGroup android:id="@+id/scopeGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/scopeApp" style="@style/Seg" android:layout_height="52dp" android:maxLines="2" android:textSize="13sp" android:text="每次询问（可选单个应用/整个屏幕）" />
-<RadioButton android:id="@+id/scopeDisplay" style="@style/Seg" android:layout_height="52dp" android:maxLines="2" android:textSize="13sp" android:text="始终整个屏幕" />
-</RadioGroup>
-<TextView android:id="@+id/scopeHint" style="@style/Hint" />
-<Switch android:id="@+id/swSkip" style="@style/PillSwitch" android:text="录屏排除分屏层（实验）" />
-<TextView android:id="@+id/skipHint" style="@style/Hint" />
+<TextView style="@style/CardTitle" android:text="采集与刷新" />
+<Switch android:id="@+id/swFull" style="@style/PillSwitch" android:text="整屏捕获（实验）" />
+<TextView android:id="@+id/fullHint" style="@style/Hint" />
 <View style="@style/Divider" />
-<TextView style="@style/Label" android:text="刷新方式（防止“画中画”无限套娃）" />
+<TextView style="@style/Label" android:text="刷新方式" />
 <RadioGroup android:id="@+id/modeGroup" style="@style/SegGroup">
 <RadioButton android:id="@+id/modeLive" style="@style/Seg" android:text="实时" />
 <RadioButton android:id="@+id/modeInterval" style="@style/Seg" android:text="间歇刷新" />
@@ -138,9 +129,11 @@
 <TextView style="@style/Hint" android:id="@+id/modeHint" />
 <TextView android:id="@+id/lblInterval" style="@style/Label" />
 <SeekBar android:id="@+id/seekInterval" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
+<TextView android:id="@+id/protectTip" style="@style/Hint" android:layout_marginTop="8dp" />
 </LinearLayout>
 <LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="关于" />
+<TextView style="@style/CardTitle" android:text="关于与调试" />
+<Switch android:id="@+id/swFps" style="@style/PillSwitch" android:text="显示帧率（调试用）" />
 <Button android:id="@+id/btnReset" style="@style/TonalBtn" android:layout_marginLeft="0dp" android:text="恢复默认参数" />
 <TextView style="@style/Hint" android:id="@+id/help" />
 </LinearLayout>

@@ -73,7 +73,10 @@ public final class Prefs {
     public static boolean gestures(SharedPreferences p) { return p.getBoolean(K_GESTURES, true); }
     public static int quality(SharedPreferences p) { return p.getInt(K_QUALITY, Q_HIGH); }
     public static boolean showFps(SharedPreferences p) { return p.getBoolean(K_SHOW_FPS, false); }
-    public static int scope(SharedPreferences p) { return p.getInt(K_SCOPE, SCOPE_APP); }
+    /** v2.0：整屏捕获（实验）= 始终整个屏幕 + 录屏排除分屏层，一个开关。 */
+    public static final String K_FULL = "full_capture";
+    public static boolean fullCapture(SharedPreferences p) { return p.getBoolean(K_FULL, false); }
+    public static int scope(SharedPreferences p) { return fullCapture(p) ? SCOPE_DISPLAY : SCOPE_APP; }
     public static final String K_RES = "res_pct_v18";     // 分辨率 100/75/50
     public static final String K_FPS = "fps_cap_v18";     // 帧率 0=跟随屏幕 60 30
     /** 未设置时从 v1.5 的“画质”迁移。 */
@@ -87,10 +90,11 @@ public final class Prefs {
         return quality(p) == Q_SAVER ? 30 : 60;
     }
     public static final String K_SKIP = "skip_capture";   // 录屏排除分屏层（实验），默认关
-    public static boolean skipCapture(SharedPreferences p) { return p.getBoolean(K_SKIP, false); }
+    public static boolean skipCapture(SharedPreferences p) { return fullCapture(p); }
     /** 默认开：v1.5 所有画质都用 GPU 路径（ImageReader GPU_SAMPLED_IMAGE），这正是输入法可见的配置。 */
     public static final String K_HIGH_REFRESH = "high_refresh"; // 申请高刷新率（默认关）
-    public static boolean highRefresh(SharedPreferences p) { return p.getBoolean(K_HIGH_REFRESH, false); }
+    /** v2.0：帧率选“跟随屏幕”时才申请高刷新率。 */
+    public static boolean highRefresh(SharedPreferences p) { return fpsCap(p) == 0; }
     public static boolean gpu(SharedPreferences p) { return p.getBoolean(K_GPU, true); }
     public static boolean realtime(SharedPreferences p) { return p.getBoolean(K_REALTIME, false); }
     public static int controlSide(SharedPreferences p) {
