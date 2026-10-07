@@ -297,13 +297,13 @@ public class MainActivity extends Activity {
         int rp = Prefs.resPct(prefs), fc = Prefs.fpsCap(prefs);
         resGroup.check(rp == 50 ? R.id.res50 : rp == 75 ? R.id.res75 : R.id.res100);
         fpsGroup.check(fc == 30 ? R.id.fps30 : fc == 60 ? R.id.fps60 : R.id.fpsFollow);
-        qualityHint.setText((rp == 100 ? "原生分辨率，最清晰。" : rp == 75 ? "75% 分辨率，清晰度与耗电平衡。" : "50% 分辨率，最省电（v1.4 及以前的画质）。")
+        qualityHint.setText((rp == 100 ? "原生分辨率，最清晰。⚠ 实测 100% 时输入法键盘可能不显示，需要键盘请用 75%。" : rp == 75 ? "75% 分辨率，清晰度与耗电平衡。" : "50% 分辨率，最省电（v1.4 及以前的画质）。")
                 + (fc == 0 ? "帧率跟随屏幕刷新率（60/90/120Hz）。" : "帧率最高约 " + fc + " 帧。"));
         swGpu.setChecked(Prefs.gpu(prefs));
         swGpu.setEnabled(Build.VERSION.SDK_INT >= 29);
         gpuHint.setText(Build.VERSION.SDK_INT < 29 ? "需要 Android 10 及以上。"
-                : "开启：画面直接交给 GPU 绘制，省去每帧拷贝，帧率更高、更省电。v1.6 已修复键盘区域变透明的问题，"
-                + "但个别机型上输入法仍可能不显示，遇到时请关闭。关闭：CPU 拷贝画面，兼容性最好（默认）。");
+                : "开启（默认，与 v1.5 相同）：画面直接交给 GPU 绘制，帧率更高、更省电，输入法可正常显示。"
+                + "关闭：改用 CPU 拷贝画面——实测此方式下输入法键盘不会出现在分屏里，仅在画面异常时作为备用。");
         swFps.setChecked(Prefs.showFps(prefs));
         boolean disp = Prefs.scope(prefs) == Prefs.SCOPE_DISPLAY;
         scopeGroup.check(disp ? R.id.scopeDisplay : R.id.scopeApp);

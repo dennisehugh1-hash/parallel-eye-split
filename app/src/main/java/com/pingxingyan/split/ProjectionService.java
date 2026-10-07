@@ -602,9 +602,12 @@ public class ProjectionService extends Service {
         }
         tryHideSystemBars(splitView);
         skipResult = -1;
-        splitView.post(this::applySkip);
-        // 窗口重新布局（旋转等）后图层可能重建，重新设置
-        splitView.addOnLayoutChangeListener((v, a, b, c, d, e, f, g, h) -> v.post(this::applySkip));
+        skipStatus = -1;
+        if (skipEnabled()) { // 实验功能，默认关：不开启时完全不触碰默认路径
+            splitView.post(this::applySkip);
+            // 窗口重新布局（旋转等）后图层可能重建，重新设置
+            splitView.addOnLayoutChangeListener((v, a, b, c, d, e, f, g, h) -> v.post(this::applySkip));
+        }
         startOrientationListener();
         splitOn = true;
         splitOnPublic = true;

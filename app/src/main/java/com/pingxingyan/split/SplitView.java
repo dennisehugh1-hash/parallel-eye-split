@@ -259,7 +259,6 @@ public class SplitView extends View {
             if (frame != null && !frame.isRecycled()) {
                 src.set(0, 0, frameW, frameH);
                 dst.set(cx - g.pw / 2f, g.cy - g.ph / 2f, cx + g.pw / 2f, g.cy + g.ph / 2f);
-                bmpPaint.setColorFilter(frame.getConfig() == Bitmap.Config.HARDWARE ? opaqueFilter : null);
                 canvas.drawBitmap(frame, src, dst, bmpPaint);
             } else {
                 canvas.drawText("正在获取画面…", cx, g.cy, textPaint);
