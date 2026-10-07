@@ -57,6 +57,8 @@
 <TextView android:id="@+id/qualityHint" style="@style/Hint" />
 <Switch android:id="@+id/swGpu" style="@style/PillSwitch" android:text="GPU 直接绘制" />
 <TextView android:id="@+id/gpuHint" style="@style/Hint" />
+<Switch android:id="@+id/swHighRefresh" style="@style/PillSwitch" android:text="申请高刷新率" />
+<TextView style="@style/Hint" android:text="让屏幕在分屏时切到最高刷新率（90/120Hz）。⚠ 部分机型切换刷新率时会收起输入法键盘，需要打字时请保持关闭。下次开启分屏时生效。" />
 <View style="@style/Divider" />
 <TextView style="@style/Label" android:text="@string/fit_title" />
 <RadioGroup android:id="@+id/fitGroup" style="@style/SegGroup">

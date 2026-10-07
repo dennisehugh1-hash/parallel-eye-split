@@ -82,6 +82,9 @@ public class MainActivity extends Activity {
             if (updatingUi) return;
             prefs.edit().putInt(Prefs.K_FPS, id == R.id.fps30 ? 30 : id == R.id.fps60 ? 60 : 0).apply();
         });
+        android.widget.CompoundButton swHr = findViewById(R.id.swHighRefresh);
+        swHr.setChecked(Prefs.highRefresh(prefs));
+        swHr.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean(Prefs.K_HIGH_REFRESH, c).apply());
         swGpu.setOnCheckedChangeListener((b, c) -> {
             if (updatingUi) return;
             prefs.edit().putBoolean(Prefs.K_GPU, c).apply();

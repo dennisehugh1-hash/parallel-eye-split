@@ -581,8 +581,8 @@ public class ProjectionService extends Service {
             splitLp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         }
         splitLp.setTitle("ParallelEyeSplit");
-        // 请求屏幕最高刷新率（90/120Hz 屏幕上避免被限制在 60Hz）
-        try {
+        // 请求屏幕最高刷新率（可选，默认关：切换显示模式可能导致输入法收起）
+        if (Prefs.highRefresh(prefs)) try {
             android.view.Display d = getSystemService(DisplayManager.class).getDisplay(android.view.Display.DEFAULT_DISPLAY);
             android.view.Display.Mode cur = d.getMode(), best = cur;
             for (android.view.Display.Mode m : d.getSupportedModes()) {

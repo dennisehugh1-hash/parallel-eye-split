@@ -89,6 +89,8 @@ public final class Prefs {
     public static final String K_SKIP = "skip_capture";   // 录屏排除分屏层（实验），默认关
     public static boolean skipCapture(SharedPreferences p) { return p.getBoolean(K_SKIP, false); }
     /** 默认开：v1.5 所有画质都用 GPU 路径（ImageReader GPU_SAMPLED_IMAGE），这正是输入法可见的配置。 */
+    public static final String K_HIGH_REFRESH = "high_refresh"; // 申请高刷新率（默认关）
+    public static boolean highRefresh(SharedPreferences p) { return p.getBoolean(K_HIGH_REFRESH, false); }
     public static boolean gpu(SharedPreferences p) { return p.getBoolean(K_GPU, true); }
     public static boolean realtime(SharedPreferences p) { return p.getBoolean(K_REALTIME, false); }
     public static int controlSide(SharedPreferences p) {
