@@ -105,7 +105,57 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 1. 交互操控（最常用，放最前） -->
+        <!-- 1. 权限（置顶） -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardTitle" android:text="权限" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/stCapture" style="@style/PermStatus" />
+                <Button android:id="@+id/btnStart2" style="@style/TonalBtn" android:text="开始" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/stOverlay" style="@style/PermStatus" />
+                <Button android:id="@+id/btnOverlayPerm" style="@style/TonalBtn" android:text="授予" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/stNotif" style="@style/PermStatus" />
+                <Button android:id="@+id/btnNotifPerm" style="@style/TonalBtn" android:text="允许" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/a11yStatus" style="@style/PermStatus" />
+                <Button android:id="@+id/btnA11y" style="@style/TonalBtn" android:text="去开启" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/stShizuku" style="@style/PermStatus" />
+                <Button android:id="@+id/btnShizuku" style="@style/TonalBtn" android:text="授权" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 2. 交互操控 -->
         <LinearLayout style="@style/Card">
             <TextView style="@style/CardTitle" android:text="交互操控" />
             <Switch android:id="@+id/swGestures" style="@style/PillSwitch" android:text="快捷手势" />
@@ -155,7 +205,7 @@
             <TextView style="@style/Hint" android:id="@+id/controlHelp" />
         </LinearLayout>
 
-        <!-- 2. 画面与布局：缩放/偏移/间距/红圈/适配/方向 -->
+        <!-- 3. 画面与布局 -->
         <LinearLayout style="@style/Card">
             <TextView style="@style/CardTitle" android:text="画面与布局" />
             <TextView android:id="@+id/lblSize" style="@style/Label" />
@@ -203,7 +253,7 @@
             <TextView style="@style/Hint" android:text="@string/dir_help" />
         </LinearLayout>
 
-        <!-- 3. 采集与刷新：分辨率/帧率/GPU/整屏捕获/刷新 -->
+        <!-- 4. 采集与刷新 -->
         <LinearLayout style="@style/Card">
             <TextView style="@style/CardTitle" android:text="采集与刷新" />
             <TextView style="@style/Label" android:text="分辨率" />
@@ -249,56 +299,6 @@
                 android:id="@+id/protectTip"
                 style="@style/Hint"
                 android:layout_marginTop="8dp" />
-        </LinearLayout>
-
-        <!-- 4. 权限 -->
-        <LinearLayout style="@style/Card">
-            <TextView style="@style/CardTitle" android:text="权限" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:minHeight="44dp">
-                <TextView android:id="@+id/stCapture" style="@style/PermStatus" />
-                <Button android:id="@+id/btnStart2" style="@style/TonalBtn" android:text="开始" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:minHeight="44dp">
-                <TextView android:id="@+id/stOverlay" style="@style/PermStatus" />
-                <Button android:id="@+id/btnOverlayPerm" style="@style/TonalBtn" android:text="授予" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:minHeight="44dp">
-                <TextView android:id="@+id/stNotif" style="@style/PermStatus" />
-                <Button android:id="@+id/btnNotifPerm" style="@style/TonalBtn" android:text="允许" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:minHeight="44dp">
-                <TextView android:id="@+id/a11yStatus" style="@style/PermStatus" />
-                <Button android:id="@+id/btnA11y" style="@style/TonalBtn" android:text="去开启" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:minHeight="44dp">
-                <TextView android:id="@+id/stShizuku" style="@style/PermStatus" />
-                <Button android:id="@+id/btnShizuku" style="@style/TonalBtn" android:text="授权" />
-            </LinearLayout>
         </LinearLayout>
 
         <!-- 5. 关于与调试 -->
