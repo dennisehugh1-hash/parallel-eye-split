@@ -19,9 +19,9 @@ Mirrors your phone screen in real time as **two side-by-side copies** with red f
 >
 > ⚠️ 平行眼只是一种观看方式，没有可靠证据表明能预防或改善近视。眼睛不适请立即停止。
 
-## Features (v2.0)
+## Features (v2.2)
 
-## 功能（v2.0）
+## 功能（v2.2）
 
 - **Picture:** resolution 100% / 75% / 50%, frame rate follow-screen / 60 / 30, GPU direct drawing (default 75% · 60 fps · GPU on). "Follow screen" also requests the display's highest refresh rate.
 - **画面：** 分辨率 100% / 75% / 50%，帧率 跟随屏幕 / 60 / 30，GPU 直接绘制（默认 75% · 60 帧 · GPU 开）。选“跟随屏幕”时同时申请屏幕最高刷新率。
@@ -35,6 +35,17 @@ Mirrors your phone screen in real time as **two side-by-side copies** with red f
 - **整屏捕获（实验）**（一个开关）：始终录整个屏幕，并尝试把分屏层排除出录屏；排除失败时自动改用间歇刷新。
 - **Refresh:** live / interval; floating button (tap = toggle, long-press = settings, drag to move); FPS counter for debugging.
 - **刷新：** 实时 / 间歇；悬浮按钮（单击开关、长按设置、可拖动）；调试用帧率显示。
+
+## What's new in v2.2
+
+## v2.2 更新
+
+- Fixed a crash when drawing GPU frames on a software canvas (`Software rendering doesn't support hardware bitmaps`).
+- 修复 GPU 帧在软件 Canvas 上绘制时崩溃（`Software rendering doesn't support hardware bitmaps`）。
+- Settings layout: 交互操控 → 画面与布局 → 采集与刷新 → 权限 → 关于与调试.
+- 设置页顺序：交互操控 → 画面与布局 → 采集与刷新 → 权限 → 关于与调试.
+- Hardened handling when the system ends screen capture (floating button stays; one-tap re-authorize).
+- 系统结束录屏时更稳妥（悬浮按钮保留，一点即可重新授权）。
 
 ## Quick start
 

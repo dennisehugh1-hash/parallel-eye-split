@@ -576,23 +576,37 @@ public class ProjectionService extends Service {
 
     private void onProjectionLost() {
         if (projection == null && projectionLost) return;
-        Log.w(TAG, "projection stopped by system");
-        CrashLog.record(this, "录屏被系统结束（MediaProjection.onStop）", new Exception("projection stopped"));
-        hideSplit();
-        releaseProjection();
-        projectionLost = true;
-        if (!running) return;
-        updateBubbleLook();
-        updateNotification();
-        Toast.makeText(this, "系统已结束录屏。点悬浮按钮可重新开始", Toast.LENGTH_LONG).show();
+        try {
+            Log.w(TAG, "projection stopped by system");
+            CrashLog.record(this, "录屏被系统结束（MediaProjection.onStop）", new Exception("projection stopped"));
+            hideSplit();
+            releaseProjection();
+            projectionLost = true;
+            if (!running) return;
+            updateBubbleLook();
+            updateNotification();
+            Toast.makeText(this, "系统已结束录屏。点悬浮按钮“开始”可重新授权", Toast.LENGTH_LONG).show();
+        } catch (Throwable t) {
+            Log.e(TAG, "onProjectionLost failed", t);
+            CrashLog.record(this, "处理录屏结束时异常", t);
+            projection = null;
+            projectionLost = true;
+            try { updateBubbleLook(); updateNotification(); } catch (Throwable ignored) {}
+        }
     }
 
     /** 录屏已结束时点悬浮按钮/通知：打开设置页并自动发起录屏授权。 */
     private void restartFromBubble() {
-        if (!running) { stopEverything(); return; }
-        Intent i = new Intent(this, MainActivity.class).putExtra(MainActivity.EXTRA_AUTOSTART, true);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        try { startActivity(i); } catch (Exception e) { Log.w(TAG, "restart failed", e); }
+        try {
+            if (!running) { stopEverything(); return; }
+            Intent i = new Intent(this, MainActivity.class).putExtra(MainActivity.EXTRA_AUTOSTART, true);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(i);
+        } catch (Exception e) {
+            Log.w(TAG, "restart failed", e);
+            CrashLog.record(this, "重新开始失败", e);
+            Toast.makeText(this, "无法打开设置页，请手动打开应用后点“开始”", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void showSplit() {
@@ -1030,11 +1044,12 @@ public class ProjectionService extends Service {
         return new Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle("平行眼分屏运行中")
-                .setContentText(projection == null && projectionLost ? "录屏已被系统结束，点悬浮按钮重新开始"
+                .setContentText(projection == null && projectionLost ? "录屏已被系统结束，点“重新开始”再授权"
                         : splitOn ? "分屏已开启（点悬浮按钮关闭分屏）" : "点悬浮按钮开启分屏；长按打开设置")
                 .setOngoing(true)
                 .setContentIntent(open)
-                .addAction(new Notification.Action.Builder(null, splitOn ? "关闭分屏" : "开启分屏", toggle).build())
+                .addAction(new Notification.Action.Builder(null,
+                        projection == null && projectionLost ? "重新开始" : (splitOn ? "关闭分屏" : "开启分屏"), toggle).build())
                 .addAction(new Notification.Action.Builder(null, "停止", stop).build())
                 .build();
     }

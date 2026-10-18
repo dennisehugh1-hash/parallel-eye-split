@@ -1,144 +1,328 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/bg" android:fitsSystemWindows="true">
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/header_bg" android:padding="20dp" android:layout_marginBottom="12dp" android:elevation="4dp">
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-<ImageView android:layout_width="44dp" android:layout_height="44dp" android:src="@mipmap/ic_launcher" android:layout_marginRight="12dp" />
-<LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/app_name" android:textSize="22sp" android:textStyle="bold" android:textColor="#FFFFFFFF" />
-<TextView android:id="@+id/version" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="#CCFFFFFF" />
-</LinearLayout>
-<TextView android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/chip_bg" android:paddingLeft="12dp" android:paddingRight="12dp" android:paddingTop="5dp" android:paddingBottom="5dp" android:textSize="13sp" android:textColor="#FFFFFFFF" />
-</LinearLayout>
-<TextView android:id="@+id/statusDetail" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="#E6FFFFFF" android:paddingTop="12dp" />
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="14dp">
-<Button android:id="@+id/btnStart" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:background="@drawable/btn_white" android:textColor="@color/accent" android:textStyle="bold" android:stateListAnimator="@null" android:text="开始" />
-<Button android:id="@+id/btnToggle" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp" android:layout_marginLeft="8dp" android:background="@drawable/btn_white" android:textColor="@color/accent" android:stateListAnimator="@null" android:text="开 / 关分屏" />
-<Button android:id="@+id/btnStop" android:layout_width="0dp" android:layout_weight="0.7" android:layout_height="40dp" android:layout_marginLeft="8dp" android:background="@drawable/btn_ghost" android:textColor="#FFFFFFFF" android:stateListAnimator="@null" android:text="停止" />
-</LinearLayout>
-</LinearLayout>
-<LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="权限" />
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:minHeight="44dp">
-<TextView android:id="@+id/stCapture" style="@style/PermStatus" />
-<Button android:id="@+id/btnStart2" style="@style/TonalBtn" android:text="开始" />
-</LinearLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:minHeight="44dp">
-<TextView android:id="@+id/stOverlay" style="@style/PermStatus" />
-<Button android:id="@+id/btnOverlayPerm" style="@style/TonalBtn" android:text="授予" />
-</LinearLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:minHeight="44dp">
-<TextView android:id="@+id/stNotif" style="@style/PermStatus" />
-<Button android:id="@+id/btnNotifPerm" style="@style/TonalBtn" android:text="允许" />
-</LinearLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:minHeight="44dp">
-<TextView android:id="@+id/a11yStatus" style="@style/PermStatus" />
-<Button android:id="@+id/btnA11y" style="@style/TonalBtn" android:text="去开启" />
-</LinearLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:minHeight="44dp">
-<TextView android:id="@+id/stShizuku" style="@style/PermStatus" />
-<Button android:id="@+id/btnShizuku" style="@style/TonalBtn" android:text="授权" />
-</LinearLayout>
-</LinearLayout>
-<LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="画面" />
-<TextView style="@style/Label" android:text="分辨率" />
-<RadioGroup android:id="@+id/resGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/res100" style="@style/Seg" android:text="100%" />
-<RadioButton android:id="@+id/res75" style="@style/Seg" android:text="75%" />
-<RadioButton android:id="@+id/res50" style="@style/Seg" android:text="50%" />
-</RadioGroup>
-<TextView style="@style/Label" android:text="帧率" />
-<RadioGroup android:id="@+id/fpsGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/fpsFollow" style="@style/Seg" android:text="跟随屏幕" />
-<RadioButton android:id="@+id/fps60" style="@style/Seg" android:text="60" />
-<RadioButton android:id="@+id/fps30" style="@style/Seg" android:text="30" />
-</RadioGroup>
-<TextView android:id="@+id/qualityHint" style="@style/Hint" />
-<Switch android:id="@+id/swGpu" style="@style/PillSwitch" android:text="GPU 直接绘制" />
-<TextView android:id="@+id/gpuHint" style="@style/Hint" />
-<View style="@style/Divider" />
-<TextView style="@style/Label" android:text="@string/fit_title" />
-<RadioGroup android:id="@+id/fitGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/fitFill" style="@style/Seg" android:text="填满" />
-<RadioButton android:id="@+id/fitContain" style="@style/Seg" android:text="完整显示" />
-</RadioGroup>
-<TextView style="@style/Hint" android:id="@+id/fitHint" />
-<View style="@style/Divider" />
-<Switch android:id="@+id/chkDots" style="@style/PillSwitch" android:text="显示对焦红圈" />
-<View style="@style/Divider" />
-<TextView android:id="@+id/lblSize" style="@style/Label" />
-<SeekBar android:id="@+id/seekSize" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
-<TextView android:id="@+id/lblOffset" style="@style/Label" />
-<SeekBar android:id="@+id/seekOffset" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
-</LinearLayout>
-<LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="分屏" />
-<TextView android:id="@+id/lblSep" style="@style/Label" />
-<SeekBar android:id="@+id/seekSep" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
-<View style="@style/Divider" />
-<TextView style="@style/Label" android:text="@string/orient_title" />
-<RadioGroup android:id="@+id/orientGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/orientForce" style="@style/Seg" android:text="强制横屏" />
-<RadioButton android:id="@+id/orientFollow" style="@style/Seg" android:text="跟随系统" />
-</RadioGroup>
-<TextView style="@style/Hint" android:id="@+id/orientHint" />
-<TextView style="@style/Label" android:text="横屏方向" />
-<RadioGroup android:id="@+id/dirGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/dirAuto" style="@style/Seg" android:text="@string/dir_auto" />
-<RadioButton android:id="@+id/dirLeft" style="@style/Seg" android:text="@string/dir_left" />
-<RadioButton android:id="@+id/dirRight" style="@style/Seg" android:text="@string/dir_right" />
-</RadioGroup>
-<TextView style="@style/Hint" android:text="@string/dir_help" />
-</LinearLayout>
-<LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="交互操控" />
-<Switch android:id="@+id/swGestures" style="@style/PillSwitch" android:text="快捷手势" />
-<TextView style="@style/Hint" android:id="@+id/gestureHelp" />
-<View style="@style/Divider" />
-<TextView style="@style/Label" android:text="可操控半屏 · 操控方式" />
-<RadioGroup android:id="@+id/methodGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/methodOff" style="@style/Seg" android:text="关闭" />
-<RadioButton android:id="@+id/methodA11y" style="@style/Seg" android:text="无障碍回放" />
-<RadioButton android:id="@+id/methodShizuku" style="@style/Seg" android:text="Shizuku 实时" />
-</RadioGroup>
-<TextView android:id="@+id/methodStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:paddingTop="8dp" />
-<TextView style="@style/Hint" android:id="@+id/methodHelp" />
-<TextView style="@style/Label" android:text="可操控的一侧" />
-<RadioGroup android:id="@+id/controlGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/controlLeft" style="@style/Seg" android:text="左半屏" />
-<RadioButton android:id="@+id/controlRight" style="@style/Seg" android:text="右半屏" />
-</RadioGroup>
-<TextView style="@style/Hint" android:id="@+id/comboHint" />
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="8dp">
-<Button android:id="@+id/btnShizukuApp" style="@style/TonalBtn" android:layout_width="0dp" android:layout_weight="1" android:layout_marginLeft="0dp" android:layout_marginRight="6dp" android:text="Shizuku 下载/打开" />
-<Button android:id="@+id/btnAppInfo" style="@style/TonalBtn" android:layout_width="0dp" android:layout_weight="1" android:layout_marginLeft="0dp" android:layout_marginRight="6dp" android:text="@string/btn_app_info" />
-</LinearLayout>
-<TextView style="@style/Hint" android:id="@+id/controlHelp" />
-</LinearLayout>
-<LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="采集与刷新" />
-<Switch android:id="@+id/swFull" style="@style/PillSwitch" android:text="整屏捕获（实验）" />
-<TextView android:id="@+id/fullHint" style="@style/Hint" />
-<Button android:id="@+id/btnRestart" style="@style/TonalBtn" android:layout_marginLeft="0dp" android:layout_marginTop="6dp" android:visibility="gone" android:text="重新开始" />
-<View style="@style/Divider" />
-<TextView style="@style/Label" android:text="刷新方式" />
-<RadioGroup android:id="@+id/modeGroup" style="@style/SegGroup">
-<RadioButton android:id="@+id/modeLive" style="@style/Seg" android:text="实时" />
-<RadioButton android:id="@+id/modeInterval" style="@style/Seg" android:text="间歇刷新" />
-</RadioGroup>
-<TextView style="@style/Hint" android:id="@+id/modeHint" />
-<TextView android:id="@+id/lblInterval" style="@style/Label" />
-<SeekBar android:id="@+id/seekInterval" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="6dp" android:paddingBottom="6dp" />
-<TextView android:id="@+id/protectTip" style="@style/Hint" android:layout_marginTop="8dp" />
-</LinearLayout>
-<LinearLayout style="@style/Card">
-<TextView style="@style/CardTitle" android:text="关于与调试" />
-<Switch android:id="@+id/swFps" style="@style/PillSwitch" android:text="显示帧率（调试用）" />
-<Button android:id="@+id/btnReset" style="@style/TonalBtn" android:layout_marginLeft="0dp" android:text="恢复默认参数" />
-<TextView android:id="@+id/help" style="@style/Hint" />
-<TextView android:id="@+id/crashInfo" style="@style/Hint" android:layout_marginTop="8dp" android:textIsSelectable="true" android:visibility="gone" />
-<Button android:id="@+id/btnClearCrash" style="@style/TonalBtn" android:layout_marginLeft="0dp" android:visibility="gone" android:text="清除异常记录" />
-</LinearLayout>
-</LinearLayout>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:fitsSystemWindows="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- 顶栏 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/header_bg"
+            android:padding="20dp"
+            android:layout_marginBottom="12dp"
+            android:elevation="4dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <ImageView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:src="@mipmap/ic_launcher"
+                    android:layout_marginRight="12dp" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/app_name"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFFFF" />
+                    <TextView
+                        android:id="@+id/version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="#CCFFFFFF" />
+                </LinearLayout>
+                <TextView
+                    android:id="@+id/status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/chip_bg"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:paddingTop="5dp"
+                    android:paddingBottom="5dp"
+                    android:textSize="13sp"
+                    android:textColor="#FFFFFFFF" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/statusDetail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="13sp"
+                android:textColor="#E6FFFFFF"
+                android:paddingTop="12dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="14dp">
+                <Button
+                    android:id="@+id/btnStart"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="40dp"
+                    android:background="@drawable/btn_white"
+                    android:textColor="@color/accent"
+                    android:textStyle="bold"
+                    android:stateListAnimator="@null"
+                    android:text="开始" />
+                <Button
+                    android:id="@+id/btnToggle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="40dp"
+                    android:layout_marginLeft="8dp"
+                    android:background="@drawable/btn_white"
+                    android:textColor="@color/accent"
+                    android:stateListAnimator="@null"
+                    android:text="开 / 关分屏" />
+                <Button
+                    android:id="@+id/btnStop"
+                    android:layout_width="0dp"
+                    android:layout_weight="0.7"
+                    android:layout_height="40dp"
+                    android:layout_marginLeft="8dp"
+                    android:background="@drawable/btn_ghost"
+                    android:textColor="#FFFFFFFF"
+                    android:stateListAnimator="@null"
+                    android:text="停止" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 1. 交互操控（最常用，放最前） -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardTitle" android:text="交互操控" />
+            <Switch android:id="@+id/swGestures" style="@style/PillSwitch" android:text="快捷手势" />
+            <TextView style="@style/Hint" android:id="@+id/gestureHelp" />
+            <View style="@style/Divider" />
+            <TextView style="@style/Label" android:text="可操控半屏 · 操控方式" />
+            <RadioGroup android:id="@+id/methodGroup" style="@style/SegGroup">
+                <RadioButton android:id="@+id/methodOff" style="@style/Seg" android:text="关闭" />
+                <RadioButton android:id="@+id/methodA11y" style="@style/Seg" android:text="无障碍回放" />
+                <RadioButton android:id="@+id/methodShizuku" style="@style/Seg" android:text="Shizuku 实时" />
+            </RadioGroup>
+            <TextView
+                android:id="@+id/methodStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:paddingTop="8dp" />
+            <TextView style="@style/Hint" android:id="@+id/methodHelp" />
+            <TextView style="@style/Label" android:text="可操控的一侧" />
+            <RadioGroup android:id="@+id/controlGroup" style="@style/SegGroup">
+                <RadioButton android:id="@+id/controlLeft" style="@style/Seg" android:text="左半屏" />
+                <RadioButton android:id="@+id/controlRight" style="@style/Seg" android:text="右半屏" />
+            </RadioGroup>
+            <TextView style="@style/Hint" android:id="@+id/comboHint" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="8dp">
+                <Button
+                    android:id="@+id/btnShizukuApp"
+                    style="@style/TonalBtn"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginLeft="0dp"
+                    android:layout_marginRight="6dp"
+                    android:text="Shizuku 下载/打开" />
+                <Button
+                    android:id="@+id/btnAppInfo"
+                    style="@style/TonalBtn"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginLeft="0dp"
+                    android:layout_marginRight="6dp"
+                    android:text="@string/btn_app_info" />
+            </LinearLayout>
+            <TextView style="@style/Hint" android:id="@+id/controlHelp" />
+        </LinearLayout>
+
+        <!-- 2. 画面与布局：缩放/偏移/间距/红圈/适配/方向 -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardTitle" android:text="画面与布局" />
+            <TextView android:id="@+id/lblSize" style="@style/Label" />
+            <SeekBar
+                android:id="@+id/seekSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
+            <TextView android:id="@+id/lblOffset" style="@style/Label" />
+            <SeekBar
+                android:id="@+id/seekOffset"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
+            <TextView android:id="@+id/lblSep" style="@style/Label" />
+            <SeekBar
+                android:id="@+id/seekSep"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
+            <Switch android:id="@+id/chkDots" style="@style/PillSwitch" android:text="显示对焦红圈" />
+            <View style="@style/Divider" />
+            <TextView style="@style/Label" android:text="@string/fit_title" />
+            <RadioGroup android:id="@+id/fitGroup" style="@style/SegGroup">
+                <RadioButton android:id="@+id/fitFill" style="@style/Seg" android:text="填满" />
+                <RadioButton android:id="@+id/fitContain" style="@style/Seg" android:text="完整显示" />
+            </RadioGroup>
+            <TextView style="@style/Hint" android:id="@+id/fitHint" />
+            <View style="@style/Divider" />
+            <TextView style="@style/Label" android:text="@string/orient_title" />
+            <RadioGroup android:id="@+id/orientGroup" style="@style/SegGroup">
+                <RadioButton android:id="@+id/orientForce" style="@style/Seg" android:text="强制横屏" />
+                <RadioButton android:id="@+id/orientFollow" style="@style/Seg" android:text="跟随系统" />
+            </RadioGroup>
+            <TextView style="@style/Hint" android:id="@+id/orientHint" />
+            <TextView style="@style/Label" android:text="横屏方向" />
+            <RadioGroup android:id="@+id/dirGroup" style="@style/SegGroup">
+                <RadioButton android:id="@+id/dirAuto" style="@style/Seg" android:text="@string/dir_auto" />
+                <RadioButton android:id="@+id/dirLeft" style="@style/Seg" android:text="@string/dir_left" />
+                <RadioButton android:id="@+id/dirRight" style="@style/Seg" android:text="@string/dir_right" />
+            </RadioGroup>
+            <TextView style="@style/Hint" android:text="@string/dir_help" />
+        </LinearLayout>
+
+        <!-- 3. 采集与刷新：分辨率/帧率/GPU/整屏捕获/刷新 -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardTitle" android:text="采集与刷新" />
+            <TextView style="@style/Label" android:text="分辨率" />
+            <RadioGroup android:id="@+id/resGroup" style="@style/SegGroup">
+                <RadioButton android:id="@+id/res100" style="@style/Seg" android:text="100%" />
+                <RadioButton android:id="@+id/res75" style="@style/Seg" android:text="75%" />
+                <RadioButton android:id="@+id/res50" style="@style/Seg" android:text="50%" />
+            </RadioGroup>
+            <TextView style="@style/Label" android:text="帧率" />
+            <RadioGroup android:id="@+id/fpsGroup" style="@style/SegGroup">
+                <RadioButton android:id="@+id/fpsFollow" style="@style/Seg" android:text="跟随屏幕" />
+                <RadioButton android:id="@+id/fps60" style="@style/Seg" android:text="60" />
+                <RadioButton android:id="@+id/fps30" style="@style/Seg" android:text="30" />
+            </RadioGroup>
+            <TextView android:id="@+id/qualityHint" style="@style/Hint" />
+            <Switch android:id="@+id/swGpu" style="@style/PillSwitch" android:text="GPU 直接绘制" />
+            <TextView android:id="@+id/gpuHint" style="@style/Hint" />
+            <View style="@style/Divider" />
+            <Switch android:id="@+id/swFull" style="@style/PillSwitch" android:text="整屏捕获（实验）" />
+            <TextView android:id="@+id/fullHint" style="@style/Hint" />
+            <Button
+                android:id="@+id/btnRestart"
+                style="@style/TonalBtn"
+                android:layout_marginLeft="0dp"
+                android:layout_marginTop="6dp"
+                android:visibility="gone"
+                android:text="重新开始" />
+            <View style="@style/Divider" />
+            <TextView style="@style/Label" android:text="刷新方式" />
+            <RadioGroup android:id="@+id/modeGroup" style="@style/SegGroup">
+                <RadioButton android:id="@+id/modeLive" style="@style/Seg" android:text="实时" />
+                <RadioButton android:id="@+id/modeInterval" style="@style/Seg" android:text="间歇刷新" />
+            </RadioGroup>
+            <TextView style="@style/Hint" android:id="@+id/modeHint" />
+            <TextView android:id="@+id/lblInterval" style="@style/Label" />
+            <SeekBar
+                android:id="@+id/seekInterval"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
+            <TextView
+                android:id="@+id/protectTip"
+                style="@style/Hint"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+        <!-- 4. 权限 -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardTitle" android:text="权限" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/stCapture" style="@style/PermStatus" />
+                <Button android:id="@+id/btnStart2" style="@style/TonalBtn" android:text="开始" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/stOverlay" style="@style/PermStatus" />
+                <Button android:id="@+id/btnOverlayPerm" style="@style/TonalBtn" android:text="授予" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/stNotif" style="@style/PermStatus" />
+                <Button android:id="@+id/btnNotifPerm" style="@style/TonalBtn" android:text="允许" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/a11yStatus" style="@style/PermStatus" />
+                <Button android:id="@+id/btnA11y" style="@style/TonalBtn" android:text="去开启" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:minHeight="44dp">
+                <TextView android:id="@+id/stShizuku" style="@style/PermStatus" />
+                <Button android:id="@+id/btnShizuku" style="@style/TonalBtn" android:text="授权" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 5. 关于与调试 -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardTitle" android:text="关于与调试" />
+            <Switch android:id="@+id/swFps" style="@style/PillSwitch" android:text="显示帧率（调试用）" />
+            <Button
+                android:id="@+id/btnReset"
+                style="@style/TonalBtn"
+                android:layout_marginLeft="0dp"
+                android:text="恢复默认参数" />
+            <TextView android:id="@+id/help" style="@style/Hint" />
+            <TextView
+                android:id="@+id/crashInfo"
+                style="@style/Hint"
+                android:layout_marginTop="8dp"
+                android:textIsSelectable="true"
+                android:visibility="gone" />
+            <Button
+                android:id="@+id/btnClearCrash"
+                style="@style/TonalBtn"
+                android:layout_marginLeft="0dp"
+                android:visibility="gone"
+                android:text="清除异常记录" />
+        </LinearLayout>
+    </LinearLayout>
 </ScrollView>

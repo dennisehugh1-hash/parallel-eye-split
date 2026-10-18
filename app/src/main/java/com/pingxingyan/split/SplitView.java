@@ -78,6 +78,8 @@ public class SplitView extends View {
     private final int touchSlop;
 
     private Bitmap frame;
+    /** GPU 帧在软件 Canvas 上绘制时的 ARGB 副本（仅软件路径需要，避免崩溃）。 */
+    private Bitmap softwareFrame;
     private int frameW, frameH;
     private boolean transparent;   // 间歇刷新抓帧期间：画成全透明，窗口保持可见
     private String hint;
@@ -105,6 +107,8 @@ public class SplitView extends View {
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(16 * ctx.getResources().getDisplayMetrics().scaledDensity);
         setBackground(null);
+        // 优先硬件加速：硬件位图只能画在硬件 Canvas 上；间歇刷新透明时系统可能退回软件绘制
+        setLayerType(LAYER_TYPE_HARDWARE, null);
         // 强制不透明：截屏缓冲的 alpha 通道并不可靠（输入法等图层所在区域 alpha 可能为 0），
         // 按原样绘制会让这些区域变成透明/黑色（v1.5 GPU 直接绘制时键盘“消失”的原因）
         opaqueFilter = (new android.graphics.ColorMatrixColorFilter(new float[]{
@@ -175,10 +179,27 @@ public class SplitView extends View {
     /** 仅在主线程调用。 */
     public void setFrame(Bitmap bmp, int w, int h) {
         newFrames++;
+        if (frame != bmp && softwareFrame != null) {
+            softwareFrame.recycle();
+            softwareFrame = null;
+        }
         frame = bmp;
         frameW = w;
         frameH = h;
         invalidate();
+    }
+
+    /** 硬件位图 → 可在软件 Canvas 上绘制的 ARGB 副本。失败返回 null。 */
+    private Bitmap softwareCopy(Bitmap hw) {
+        try {
+            if (hw == null || hw.isRecycled()) return null;
+            if (hw.getConfig() != Bitmap.Config.HARDWARE) return hw;
+            Bitmap c = hw.copy(Bitmap.Config.ARGB_8888, false);
+            if (c != null) c.setHasAlpha(false);
+            return c;
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     public void setTransparent(boolean t) {
@@ -257,7 +278,32 @@ public class SplitView extends View {
             if (frame != null && !frame.isRecycled()) {
                 src.set(0, 0, frameW, frameH);
                 dst.set(cx - g.pw / 2f, g.cy - g.ph / 2f, cx + g.pw / 2f, g.cy + g.ph / 2f);
-                canvas.drawBitmap(frame, src, dst, bmpPaint);
+                Bitmap draw = frame;
+                // 软件 Canvas 不能画 HARDWARE 位图（会抛 IllegalArgumentException）
+                if (frame.getConfig() == Bitmap.Config.HARDWARE && !canvas.isHardwareAccelerated()) {
+                    if (softwareFrame == null || softwareFrame.isRecycled()
+                            || softwareFrame.getWidth() != frame.getWidth()
+                            || softwareFrame.getHeight() != frame.getHeight()) {
+                        if (softwareFrame != null) { try { softwareFrame.recycle(); } catch (Throwable ignored) {} }
+                        softwareFrame = softwareCopy(frame);
+                    }
+                    draw = softwareFrame != null ? softwareFrame : null;
+                }
+                try {
+                    if (draw != null && !draw.isRecycled()) canvas.drawBitmap(draw, src, dst, bmpPaint);
+                    else canvas.drawText("正在获取画面…", cx, g.cy, textPaint);
+                } catch (IllegalArgumentException e) {
+                    // 兜底：强制转软件位图再画一次
+                    Bitmap fb = softwareCopy(frame);
+                    if (fb != null) {
+                        if (softwareFrame != null && softwareFrame != fb) try { softwareFrame.recycle(); } catch (Throwable ignored) {}
+                        softwareFrame = fb;
+                        try { canvas.drawBitmap(fb, src, dst, bmpPaint); }
+                        catch (Throwable ignored) { canvas.drawText("画面异常", cx, g.cy, textPaint); }
+                    } else {
+                        canvas.drawText("画面异常", cx, g.cy, textPaint);
+                    }
+                }
             } else {
                 canvas.drawText("正在获取画面…", cx, g.cy, textPaint);
             }
