@@ -138,14 +138,20 @@ public final class ShizukuHelper {
     }
 
     /**
-     * 以 Shizuku 的 shell/root 身份执行一条命令（不经 shell 拼接，避免注入）。
+     * 以 Shizuku 的 shell/root 身份执行一条命令（参数数组，不经 shell 拼接）。
      * 成功返回标准输出（可能为空串），失败返回 null。
+     * Shizuku 13 把 newProcess 标成了 private，这里反射调用，避免再绑一层 UserService。
      */
     public String execOut(String... cmd) {
         if (!granted() || cmd == null || cmd.length == 0) return null;
         Process proc = null;
         try {
-            proc = Shizuku.newProcess(cmd, null, null);
+            java.lang.reflect.Method m = Shizuku.class.getDeclaredMethod(
+                    "newProcess", String[].class, String[].class, String[].class);
+            m.setAccessible(true);
+            Object started = m.invoke(null, cmd, null, null);
+            if (!(started instanceof Process)) return null;
+            proc = (Process) started;
             java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
             byte[] tmp = new byte[512];
             java.io.InputStream in = proc.getInputStream();
@@ -153,7 +159,11 @@ public final class ShizukuHelper {
             int n;
             while ((n = in.read(tmp)) >= 0) buf.write(tmp, 0, n);
             while (err.read(tmp) >= 0) { /* 丢掉 stderr，避免管道塞满 */ }
-            if (proc.waitFor() != 0) {
+            if (!proc.waitFor(8, java.util.concurrent.TimeUnit.SECONDS)) {
+                proc.destroyForcibly();
+                return null;
+            }
+            if (proc.exitValue() != 0) {
                 Log.w(TAG, "shell exit " + java.util.Arrays.toString(cmd));
                 return null;
             }
