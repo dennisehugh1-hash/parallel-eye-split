@@ -110,7 +110,9 @@ public final class ShizukuHelper {
 
     public void ensureBound() {
         if (injector != null || binding || !granted()) return;
-        if (!Prefs.realtime(Prefs.get(app))) return;
+        android.content.SharedPreferences p = Prefs.get(app);
+        // 实时操控需要注入服务；整屏/显示输入法时也用它给分屏层打 SKIP_SCREENSHOT（本进程失败时的后备）
+        if (!Prefs.realtime(p) && !Prefs.skipCapture(p)) return;
         try {
             binding = true;
             Shizuku.bindUserService(args, conn);
@@ -133,6 +135,35 @@ public final class ShizukuHelper {
         IInjector i = injector;
         if (i == null) return false;
         try { return i.setSkipScreenshot(sc, skip); } catch (Throwable t) { return false; }
+    }
+
+    /**
+     * 以 Shizuku 的 shell/root 身份执行一条命令（不经 shell 拼接，避免注入）。
+     * 成功返回标准输出（可能为空串），失败返回 null。
+     */
+    public String execOut(String... cmd) {
+        if (!granted() || cmd == null || cmd.length == 0) return null;
+        Process proc = null;
+        try {
+            proc = Shizuku.newProcess(cmd, null, null);
+            java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+            byte[] tmp = new byte[512];
+            java.io.InputStream in = proc.getInputStream();
+            java.io.InputStream err = proc.getErrorStream();
+            int n;
+            while ((n = in.read(tmp)) >= 0) buf.write(tmp, 0, n);
+            while (err.read(tmp) >= 0) { /* 丢掉 stderr，避免管道塞满 */ }
+            if (proc.waitFor() != 0) {
+                Log.w(TAG, "shell exit " + java.util.Arrays.toString(cmd));
+                return null;
+            }
+            return buf.toString(java.nio.charset.StandardCharsets.UTF_8.name());
+        } catch (Throwable t) {
+            Log.w(TAG, "shell failed", t);
+            return null;
+        } finally {
+            if (proc != null) proc.destroy();
+        }
     }
 
     /** 异步注入一个单指触摸事件（真实屏幕坐标）。 */

@@ -75,8 +75,13 @@ public final class Prefs {
     public static boolean showFps(SharedPreferences p) { return p.getBoolean(K_SHOW_FPS, false); }
     /** v2.0：整屏捕获（实验）= 始终整个屏幕 + 录屏排除分屏层，一个开关。 */
     public static final String K_FULL = "full_capture";
+    /** v2.4：显示输入法。默认开。输入法是系统窗口，单个应用共享录不到，键盘区域会是黑的。 */
+    public static final String K_SHOW_IME = "show_ime";
     public static boolean fullCapture(SharedPreferences p) { return p.getBoolean(K_FULL, false); }
-    public static int scope(SharedPreferences p) { return fullCapture(p) ? SCOPE_DISPLAY : SCOPE_APP; }
+    public static boolean showIme(SharedPreferences p) { return p.getBoolean(K_SHOW_IME, true); }
+    /** 整屏捕获或显示输入法：都要录整个屏幕，键盘才会出现在左右两幅画面里。 */
+    public static boolean wantsWholeDisplay(SharedPreferences p) { return fullCapture(p) || showIme(p); }
+    public static int scope(SharedPreferences p) { return wantsWholeDisplay(p) ? SCOPE_DISPLAY : SCOPE_APP; }
     public static final String K_RES = "res_pct_v18";     // 分辨率 100/75/50
     public static final String K_FPS = "fps_cap_v18";     // 帧率 0=跟随屏幕 60 30
     /** 未设置时从 v1.5 的“画质”迁移。 */
@@ -90,7 +95,7 @@ public final class Prefs {
         return quality(p) == Q_SAVER ? 30 : 60;
     }
     public static final String K_SKIP = "skip_capture";   // 录屏排除分屏层（实验），默认关
-    public static boolean skipCapture(SharedPreferences p) { return fullCapture(p); }
+    public static boolean skipCapture(SharedPreferences p) { return wantsWholeDisplay(p); }
     /** 默认开：v1.5 所有画质都用 GPU 路径（ImageReader GPU_SAMPLED_IMAGE），这正是输入法可见的配置。 */
     public static final String K_HIGH_REFRESH = "high_refresh"; // 申请高刷新率（默认关）
     /** v2.0：帧率选“跟随屏幕”时才申请高刷新率。 */

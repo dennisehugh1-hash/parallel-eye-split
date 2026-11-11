@@ -19,9 +19,9 @@ Mirrors your phone screen in real time as **two side-by-side copies** with red f
 >
 > ⚠️ 平行眼只是一种观看方式，没有可靠证据表明能预防或改善近视。眼睛不适请立即停止。
 
-## Features (v2.3)
+## Features (v2.4)
 
-## 功能（v2.3）
+## 功能（v2.4）
 
 - **Picture:** resolution 100% / 75% / 50%, frame rate follow-screen / 60 / 30, GPU direct drawing (default 75% · 60 fps · GPU on). "Follow screen" also requests the display's highest refresh rate.
 - **画面：** 分辨率 100% / 75% / 50%，帧率 跟随屏幕 / 60 / 30，GPU 直接绘制（默认 75% · 60 帧 · GPU 开）。选“跟随屏幕”时同时申请屏幕最高刷新率。
@@ -31,10 +31,23 @@ Mirrors your phone screen in real time as **two side-by-side copies** with red f
 - **快捷手势**（开关）：左右滑调间距、上下滑调偏移、双指缩放、双击关闭。
 - **Operable half** — mode: Off / Accessibility (replay after lift) / Shizuku (real-time); left or right half. Combines freely with quick gestures (4 combinations).
 - **可操控半屏** —— 操控方式：关闭 / 无障碍（松手后回放）/ Shizuku（实时）；可选左或右半屏。与快捷手势自由组合（4 种情况）。
+- **Keyboard:** "显示输入法键盘" is on by default. The IME is a system window, so single-app capture leaves a black band. The app now captures the whole display and tries to keep the split overlay out of the recording. On Android 15, if the keys are still black and Shizuku is authorized, screen-share protection is turned off only for the session and restored when you stop.
+- **输入法：** “显示输入法键盘”默认开启。输入法是系统窗口，选“单个应用”时键盘区域会是黑的。现在默认录整个屏幕，并尽量把分屏层排除出录屏。Android 15 上若键盘仍是黑的、且已授权 Shizuku，只在本次分屏期间临时关闭屏幕共享保护，停止后自动恢复。
 - **Full-screen capture (experimental)** (one switch): always capture the entire screen and try to exclude the split overlay from the recording; falls back to interval refresh if exclusion fails.
 - **整屏捕获（实验）**（一个开关）：始终录整个屏幕，并尝试把分屏层排除出录屏；排除失败时自动改用间歇刷新。
 - **Refresh:** live / interval; floating button (tap = toggle, long-press = settings, drag to move); FPS counter for debugging.
 - **刷新：** 实时 / 间歇；悬浮按钮（单击开关、长按设置、可拖动）；调试用帧率显示。
+
+## What's new in v2.4
+
+## v2.4 更新
+
+- Keyboard is included in both copies. Default capture is the whole screen (not a single app), because the IME is not part of the app window.
+- 键盘会出现在左右两幅画面里。默认改为录整个屏幕，不再默认“单个应用”——输入法不在应用窗口里。
+- If Shizuku is already allowed, Android 14+ screen-share protection is disabled only while a session runs, then restored (also after a crash, the next time you open the app).
+- 若已经允许 Shizuku，Android 14+ 的屏幕共享保护只在分屏会话期间临时关闭，停止后恢复（异常退出后，下次打开应用也会恢复）。
+- v2.3 is kept on branch `archive/v2.3` and as the [v2.3 APK](https://github.com/dennisehugh1-hash/parallel-eye-split/releases/download/v2.3/ParallelEyeSplit-v2.3.apk).
+- v2.3 留在分支 `archive/v2.3`，安装包仍是 [v2.3 APK](https://github.com/dennisehugh1-hash/parallel-eye-split/releases/download/v2.3/ParallelEyeSplit-v2.3.apk)。
 
 ## What's new in v2.3
 
@@ -60,8 +73,8 @@ Mirrors your phone screen in real time as **two side-by-side copies** with red f
 
 1. Install the APK, grant "Display over other apps".
 1. 安装 APK，授予“显示在其他应用上层”。
-2. Tap "开始", choose **"A single app"** in the capture dialog (no feedback loop).
-2. 点“开始”，录屏弹窗选**“单个应用”**（不会套娃）。
+2. Tap "开始" and allow **"Entire screen"** (not a single app — a single app does not include the keyboard).
+2. 点“开始”，允许**“整个屏幕”**（不要选单个应用，否则键盘是黑的）。
 3. Tap the floating "分屏" button, hold the phone sideways, relax your eyes until the two red rings merge.
 3. 点悬浮按钮“分屏”，横拿手机，放松双眼让两个红圈重合。
 
@@ -84,8 +97,8 @@ Accessibility mode: if the switch is greyed out ("Restricted setting"), open App
 
 ## 已知限制
 
-- **Keyboard / notifications:** on Android 14+ the system may hide the keyboard and notifications from screen sharing (screen-share protection). On Android 15 you can try Developer options → "Disable screen share protections".
-- **键盘 / 通知：** Android 14+ 系统可能在录屏共享中隐藏键盘和通知（屏幕共享保护）。Android 15 可尝试开发者选项 →“停用屏幕共享保护”（Disable screen share protections）。
+- **Keyboard / notifications:** single-app sharing never includes the IME, so the keyboard area is black until you capture the whole screen. On Android 15 the system can still black out the keyboard unless screen-share protections are off. This app turns that developer setting off only while splitting, via Shizuku, and turns it back on when you stop. Without Shizuku, open Developer options → "Disable screen share protections" yourself.
+- **键盘 / 通知：** 单个应用共享不含输入法，键盘区域会是黑的，必须录整个屏幕。Android 15 仍可能把键盘涂黑，除非关掉屏幕共享保护。本应用在已授权 Shizuku 时只在分屏期间临时关闭该设置，停止后恢复。没有 Shizuku 时，请自己打开开发者选项 →“停用屏幕共享保护”。
 - Capturing the entire screen records the overlay itself (feedback loop) unless exclusion works; use interval refresh then.
 - 录整个屏幕会把分屏层录进去（套娃），除非排除生效；此时请用间歇刷新。
 - Operable half supports multi-touch (up to 5 fingers); the view dims slightly while touching (Android touch pass-through rule).

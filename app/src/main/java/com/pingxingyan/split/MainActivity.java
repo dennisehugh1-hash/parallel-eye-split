@@ -31,8 +31,8 @@ public class MainActivity extends Activity {
     private android.widget.CompoundButton chkDots, swFps;
     private android.widget.Switch swGestures;
     private RadioGroup methodGroup, resGroup, fpsGroup;
-    private TextView gpuHint, fullHint;
-    private android.widget.CompoundButton swFull;
+    private TextView gpuHint, fullHint, imeHint;
+    private android.widget.CompoundButton swFull, swIme;
     private android.widget.CompoundButton swGpu;
     private Button btnShizuku, btnA11yBtn, btnOverlay, btnStart2;
     private final Runnable shizukuListener = this::refreshStatus;
@@ -49,6 +49,9 @@ public class MainActivity extends Activity {
         CrashLog.install(this);
         setContentView(R.layout.activity_main);
         prefs = Prefs.get(this);
+        // 上次会话若异常退出，把被临时关掉的屏幕共享保护改回去
+        try { if (!ProjectionService.running) ScreenShareGuard.restore(this); }
+        catch (Throwable ignored) {}
 
         status = findViewById(R.id.status);
         stCapture = findViewById(R.id.stCapture);
@@ -70,13 +73,21 @@ public class MainActivity extends Activity {
         gpuHint = findViewById(R.id.gpuHint);
         swFull = findViewById(R.id.swFull);
         fullHint = findViewById(R.id.fullHint);
+        swIme = findViewById(R.id.swIme);
+        imeHint = findViewById(R.id.imeHint);
+        swIme.setOnCheckedChangeListener((b, c) -> {
+            if (updatingUi) return;
+            prefs.edit().putBoolean(Prefs.K_SHOW_IME, c).apply();
+            if (ProjectionService.running) Toast.makeText(this, "下次点“开始”时生效", Toast.LENGTH_SHORT).show();
+        });
         swFull.setOnCheckedChangeListener((b, c) -> {
             if (updatingUi) return;
             prefs.edit().putBoolean(Prefs.K_FULL, c).apply();
             if (ProjectionService.running) Toast.makeText(this, "下次点“开始”时生效", Toast.LENGTH_SHORT).show();
         });
+        findViewById(R.id.btnFixIme).setOnClickListener(v -> fixImeWithShizuku());
         ((TextView) findViewById(R.id.protectTip)).setText(Build.VERSION.SDK_INT >= 34
-                ? "提示：Android 14+ 录屏共享可能被系统保护，隐藏键盘、通知等内容。Android 15 可在开发者选项中尝试打开“停用屏幕共享保护”（Disable screen share protections）。"
+                ? "v2.4：输入法是系统窗口，选“单个应用”录不到，键盘会是一块黑的。请保持“显示输入法键盘”开启，点开始时允许“整个屏幕”。Android 15 若仍是黑的，点“用 Shizuku 修复键盘”（停止分屏后会自动恢复屏幕共享保护），或在开发者选项打开“停用屏幕共享保护”。"
                 : "提示：部分应用禁止录屏，分屏中会显示黑色。");
         resGroup.setOnCheckedChangeListener((g, id) -> {
             if (updatingUi) return;
@@ -242,7 +253,7 @@ public class MainActivity extends Activity {
 
         DisplayMetrics dm = getResources().getDisplayMetrics();
         ((TextView) findViewById(R.id.help)).setText(
-                "1. 授予悬浮窗权限，点“开始”，录屏弹窗推荐选“单个应用”。\n"
+                "1. 授予悬浮窗权限，点“开始”，录屏弹窗选“整个屏幕”（不要选单个应用，否则键盘是黑的）。\n"
                 + "2. 点悬浮按钮“分屏”开关；长按打开设置；可拖动。\n"
                 + "3. 横拿手机，放松双眼看远处，让两个红点重合成中间一个。\n"
                 + "4. 部分应用禁止录屏，画面会是黑色。\n"
@@ -270,7 +281,9 @@ public class MainActivity extends Activity {
             startService(new Intent(this, ProjectionService.class).setAction(ProjectionService.ACTION_HIDE));
         }
         prefs.registerOnSharedPreferenceChangeListener(prefListener);
-        if (Prefs.realtime(prefs)) ShizukuHelper.get(this).addListener(shizukuListener);
+        if (Prefs.realtime(prefs) || (Prefs.showIme(prefs) && ScreenShareGuard.supported() && ShizukuHelper.binderAlive())) {
+            ShizukuHelper.get(this).addListener(shizukuListener);
+        }
         loadUi();
         refreshStatus();
     }
@@ -315,17 +328,26 @@ public class MainActivity extends Activity {
         swGpu.setEnabled(Build.VERSION.SDK_INT >= 29);
         gpuHint.setText(Build.VERSION.SDK_INT < 29 ? "需要 Android 10 及以上。" : "推荐开启：GPU 直接绘制，更流畅省电；画面异常时再关闭。");
         swFps.setChecked(Prefs.showFps(prefs));
+        boolean ime = Prefs.showIme(prefs);
         boolean full = Prefs.fullCapture(prefs);
+        boolean whole = Prefs.wantsWholeDisplay(prefs);
+        swIme.setChecked(ime);
         swFull.setChecked(full);
         int sk = ProjectionService.skipStatus;
-        boolean needRestart = ProjectionService.running && !ProjectionService.projectionLost && ProjectionService.startedFull != full;
+        boolean needRestart = ProjectionService.running && !ProjectionService.projectionLost && ProjectionService.startedFull != whole;
         findViewById(R.id.btnRestart).setVisibility(needRestart ? View.VISIBLE : View.GONE);
+        findViewById(R.id.btnFixIme).setVisibility(ime && ScreenShareGuard.supported() ? View.VISIBLE : View.GONE);
+        imeHint.setText(!ime
+                ? "关：不保证录到输入法。键盘只会留在分屏层下面，左右画面里是黑的。"
+                : "开：录整个屏幕，键盘会出现在左右两幅画面里。点开始时请允许“整个屏幕”。");
         String crash = prefs.getString(CrashLog.K_LAST, null);
         TextView ci = findViewById(R.id.crashInfo);
         ci.setVisibility(crash != null ? View.VISIBLE : View.GONE);
         findViewById(R.id.btnClearCrash).setVisibility(crash != null ? View.VISIBLE : View.GONE);
         if (crash != null) ci.setText("最近一次异常（可长按复制发给开发者）：\n" + crash);
-        fullHint.setText(needRestart ? "整屏捕获需要重新授权录屏才能生效：" : !full ? "关：每次开始时由系统询问，推荐选“单个应用”（不会套娃）。"
+        fullHint.setText(needRestart ? "采集范围变了，需要重新授权录屏才能生效："
+                : whole && !full ? "显示输入法已开启，开始时会录整个屏幕（不必再开下面这个开关）。"
+                : !whole ? "关：每次开始时由系统询问。选“单个应用”不会套娃，但键盘区域会是黑的。"
                 : !SkipCapture.supported() ? "开：始终录整个屏幕；本机低于 Android 12，无法排除分屏层，会自动用间歇刷新。"
                 : sk == SkipCapture.R_FAIL ? "开：分屏层排除失败，已自动用间歇刷新。"
                 : "开：始终录整个屏幕并尝试把分屏层排除出画面；若出现套娃请改用间歇刷新。");
@@ -364,24 +386,24 @@ public class MainActivity extends Activity {
         ((View) stNotif.getParent()).setVisibility(Build.VERSION.SDK_INT >= 33 ? View.VISIBLE : View.GONE);
         setSt(stNotif, notif ? 2 : 1, notif ? "通知：已允许" : "通知：未允许（可选）");
         boolean rt = Prefs.realtime(prefs);
-        // 未选择 Shizuku 实时：不初始化、不探测 Shizuku
-        ShizukuHelper sh = rt ? ShizukuHelper.get(this) : null;
+        boolean imeFix = Prefs.showIme(prefs) && ScreenShareGuard.supported();
+        ShizukuHelper sh = (rt || (imeFix && ShizukuHelper.binderAlive())) ? ShizukuHelper.get(this) : null;
         if (sh != null) sh.addListener(shizukuListener);
         int ss = sh != null ? sh.state() : ShizukuHelper.ST_NOT_RUNNING;
         String sText;
         int sLevel;
         switch (ss) {
-            case ShizukuHelper.ST_READY: sText = rt ? "Shizuku：已就绪（实时操控）" : "Shizuku：已授权"; sLevel = 2; break;
-            case ShizukuHelper.ST_BINDING: sText = rt ? "Shizuku：已授权，正在连接…" : "Shizuku：已授权"; sLevel = rt ? 1 : 2; break;
-            case ShizukuHelper.ST_NO_PERMISSION: sText = "Shizuku：运行中，未授权"; sLevel = rt ? 0 : 1; break;
+            case ShizukuHelper.ST_READY: sText = rt ? "Shizuku：已就绪（实时操控）" : "Shizuku：已授权（用于显示键盘）"; sLevel = 2; break;
+            case ShizukuHelper.ST_BINDING: sText = rt ? "Shizuku：已授权，正在连接…" : "Shizuku：已授权（用于显示键盘）"; sLevel = rt ? 1 : 2; break;
+            case ShizukuHelper.ST_NO_PERMISSION: sText = imeFix ? "Shizuku：运行中，授权后可修复键盘黑屏" : "Shizuku：运行中，未授权"; sLevel = rt ? 0 : 1; break;
             case ShizukuHelper.ST_OLD: sText = "Shizuku：版本过旧，请更新"; sLevel = 0; break;
-            default: sText = "Shizuku：未运行（仅实时操控需要）"; sLevel = rt ? 0 : 1; break;
+            default: sText = imeFix ? "Shizuku：未运行（键盘仍黑时可安装它）" : "Shizuku：未运行（仅实时操控需要）"; sLevel = rt ? 0 : 1; break;
         }
-        if (!rt) { sText = "Shizuku：未使用（选“Shizuku 实时”后检测）"; sLevel = 1; }
+        if (!rt && !imeFix) { sText = "Shizuku：未使用（选“Shizuku 实时”后检测）"; sLevel = 1; }
         setSt(stShizuku, sLevel, sText);
         btnShizuku.setText(ss == ShizukuHelper.ST_NOT_RUNNING || ss == ShizukuHelper.ST_OLD ? "打开" : "授权");
-        btnShizuku.setVisibility(!rt || ss == ShizukuHelper.ST_READY || ss == ShizukuHelper.ST_BINDING ? View.GONE : View.VISIBLE);
-        if (rt && ss == ShizukuHelper.ST_BINDING) sh.ensureBound();
+        btnShizuku.setVisibility((!rt && !imeFix) || ss == ShizukuHelper.ST_READY || ss == ShizukuHelper.ST_BINDING ? View.GONE : View.VISIBLE);
+        if (rt && ss == ShizukuHelper.ST_BINDING && sh != null) sh.ensureBound();
         boolean a11yOn = GestureService.isRunning();
         boolean a11ySet = GestureService.isEnabledInSettings(this);
         setSt(a11yStatus, a11yOn ? 2 : a11ySet ? 1 : (Prefs.controlPane(prefs) != Prefs.CONTROL_OFF ? 0 : 1),
@@ -410,6 +432,20 @@ public class MainActivity extends Activity {
     private void setSt(TextView t, int level, String text) {
         t.setText((level == 2 ? "● " : level == 1 ? "○ " : "✘ ") + text);
         t.setTextColor(getColor(level == 2 ? R.color.ok : level == 1 ? R.color.warn : R.color.bad));
+    }
+
+    /** 已授权则立刻临时关闭屏幕共享保护；否则去申请。停止分屏时会恢复。 */
+    private void fixImeWithShizuku() {
+        ShizukuHelper h = ShizukuHelper.get(this);
+        if (!h.granted()) {
+            if (!h.requestPermission()) openShizukuApp();
+            else Toast.makeText(this, "请允许 Shizuku。授权后会在分屏期间临时关闭屏幕共享保护，停止后自动恢复", Toast.LENGTH_LONG).show();
+            return;
+        }
+        boolean ok = ScreenShareGuard.lift(this);
+        Toast.makeText(this, ok
+                ? "已临时关闭屏幕共享保护。请重新点“开始”并选“整个屏幕”。停止分屏后会自动恢复"
+                : "设置失败。请到开发者选项手动打开“停用屏幕共享保护”", Toast.LENGTH_LONG).show();
     }
 
     private void openShizukuApp() {

@@ -120,8 +120,10 @@ public class ProjectionService extends Service {
         captureThread.start();
         captureHandler = new Handler(captureThread.getLooper());
         createChannel();
-        // 仅在选择“Shizuku 实时”时才初始化 Shizuku（默认完全不运行 Shizuku 相关代码）
-        if (Prefs.realtime(prefs) && Prefs.controlPane(prefs) != Prefs.CONTROL_OFF) ShizukuHelper.get(this).ensureBound();
+        // 实时操控，或已授权 Shizuku 且需要排除分屏层时，才初始化 Shizuku（不主动弹授权）
+        boolean wantInject = Prefs.realtime(prefs) && Prefs.controlPane(prefs) != Prefs.CONTROL_OFF;
+        boolean wantSkip = Prefs.skipCapture(prefs);
+        if ((wantInject || wantSkip) && ShizukuHelper.binderAlive()) ShizukuHelper.get(this).ensureBound();
     }
 
     @Override
@@ -172,7 +174,12 @@ public class ProjectionService extends Service {
             }
             running = true;
             projectionLost = false;
-            startedFull = Prefs.fullCapture(prefs);
+            startedFull = Prefs.wantsWholeDisplay(prefs);
+            // 整屏才能录到输入法。Android 14+ 若系统把键盘涂黑，且已授权 Shizuku，临时关掉屏幕共享保护
+            if (startedFull) {
+                try { ScreenShareGuard.lift(this); }
+                catch (Throwable t) { Log.w(TAG, "lift screen share protection failed", t); }
+            }
             startCapture();
             showBubble();
             return START_NOT_STICKY;
@@ -522,15 +529,26 @@ public class ProjectionService extends Service {
 
     public static volatile int skipStatus = -1;
 
-    /** 仅在“强制整个屏幕”且用户开启了实验开关时使用。 */
+    /** 录整个屏幕（显示输入法或整屏捕获）时，把分屏层排除出录屏。 */
     private boolean skipEnabled() {
         return Prefs.skipCapture(prefs) && Prefs.scope(prefs) == Prefs.SCOPE_DISPLAY && SkipCapture.supported();
     }
 
     private void applySkip() {
         if (splitView == null || !skipEnabled()) { skipStatus = -1; return; }
-        // 只有选择了 Shizuku 操控方式才会用到 Shizuku
-        ShizukuHelper sh = Prefs.realtime(prefs) ? ShizukuHelper.get(this) : null;
+        // 已授权就用 Shizuku 作为本进程 setSkipScreenshot 失败时的后备，不要求开启“实时操控”
+        ShizukuHelper sh = null;
+        try {
+            if (ShizukuHelper.binderAlive()) {
+                ShizukuHelper h = ShizukuHelper.get(this);
+                if (h.granted()) {
+                    h.ensureBound();
+                    sh = h;
+                }
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "skip shizuku unavailable", t);
+        }
         int r = SkipCapture.apply(splitView, sh);
         if (bubble != null) SkipCapture.apply(bubble, sh);
         boolean changed = r != skipResult;
@@ -664,7 +682,7 @@ public class ProjectionService extends Service {
         tryHideSystemBars(splitView);
         skipResult = -1;
         skipStatus = -1;
-        if (skipEnabled()) { // 实验功能，默认关：不开启时完全不触碰默认路径
+        if (skipEnabled()) { // 整屏/显示输入法：排除分屏层，失败则自动改间歇刷新
             splitView.post(this::applySkip);
             // 窗口重新布局（旋转等）后图层可能重建，重新设置
             splitView.addOnLayoutChangeListener((v, a, b, c, d, e, f, g, h) -> v.post(this::applySkip));
@@ -1089,6 +1107,7 @@ public class ProjectionService extends Service {
         hideSplit();
         removeBubble();
         releaseProjection();
+        try { ScreenShareGuard.restore(this); } catch (Throwable t) { Log.w(TAG, "restore ssp", t); }
         running = false;
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
@@ -1099,6 +1118,7 @@ public class ProjectionService extends Service {
         hideSplit();
         removeBubble();
         releaseProjection();
+        try { ScreenShareGuard.restore(this); } catch (Throwable ignored) {}
         running = false;
         prefs.unregisterOnSharedPreferenceChangeListener(prefListener);
         main.removeCallbacksAndMessages(null);

@@ -272,6 +272,14 @@
             <Switch android:id="@+id/swGpu" style="@style/PillSwitch" android:text="GPU 直接绘制" />
             <TextView android:id="@+id/gpuHint" style="@style/Hint" />
             <View style="@style/Divider" />
+            <Switch android:id="@+id/swIme" style="@style/PillSwitch" android:text="显示输入法键盘" />
+            <TextView android:id="@+id/imeHint" style="@style/Hint" />
+            <Button
+                android:id="@+id/btnFixIme"
+                style="@style/TonalBtn"
+                android:layout_marginLeft="0dp"
+                android:layout_marginTop="6dp"
+                android:text="用 Shizuku 修复键盘" />
             <Switch android:id="@+id/swFull" style="@style/PillSwitch" android:text="整屏捕获（实验）" />
             <TextView android:id="@+id/fullHint" style="@style/Hint" />
             <Button
